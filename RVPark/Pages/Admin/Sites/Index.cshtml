@@ -1,0 +1,185 @@
+﻿@page
+@model RVPark.Pages.Admin.Sites.IndexModel
+
+@{
+    ViewData["Title"] = "Sites";
+}
+
+
+
+<div class="d-flex justify-content-between align-items-center">
+	<h1 class="text-secondary">Sites</h1>
+	<a asp-page="./Upsert" asp-route-SiteId="0" class="btn btn-success">
+		<i class="fas fa-plus"></i> Create New Site
+	</a>
+</div>
+
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="my-2"><i class="fas fa-campground me-2"></i> Sites</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-page-handler="Search">
+            <div class="row align-items-center gy-2">
+                <div class="col-lg-3 col-md-6">
+                    <input id="siteSearchBar" type="text" asp-for="@Model.SiteSearchQuery" placeholder="Search Sites" class="form-control" />
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    @Html.DropDownListFor(m => m.SelectedSearchType, Model.SearchTypeList, " - Search by - ", new { @class = "form-control selectpicker", @id = "ddlSearchType", @name = "siteTypeId", data_live_search = "true" })
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    @Html.DropDownListFor(m => m.SelectedSiteTypeId, Model.SiteTypeList, " - Please select a Site Type - ", new { @class = "form-control selectpicker", @id = "ddlSiteType", @name = "siteTypeId", data_live_search = "true" })
+                </div>
+
+                <div class="col-lg-3 col-md-6 d-flex justify-content-end gap-2">
+                    <button asp-page-handler="Search" type="submit" class="btn btn-primary"> <i class="fas fa-search"></i> Search & Filter </button>
+                    <input type="hidden" id="siteSearchResetBtn" asp-for="@Model.ResettingSearch" value="" />
+                    <button asp-page-handler="Search" onclick="ResetSiteSearch()" type="submit" class="btn btn-danger"> Reset </button>
+                </div>
+            </div>
+        </form>
+
+
+        <table id="siteTable" class="table table-striped table-bordered" style="width:100%">
+            <thead>
+                <tr>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Site[0].Name)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Site[0].Description)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Site[0].TrailerMaxSize)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Site[0].SiteType)
+                    </th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Site)
+                {
+
+                    <tr>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Name)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Description)
+                        </td>
+                        <td>
+                            @if (item.TrailerMaxSize == null)
+                            {
+                                <span>None</span>
+                            }
+                            else
+                            {
+                                @Html.DisplayFor(modelItem => item.TrailerMaxSize)
+                            }
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.SiteType.Name)
+                        </td>
+                        <td>
+                            <div class="text-center d-flex justify-content-between">
+                                <form method="post">
+                                    @if (item.IsLocked == true)
+                                    {
+                                        <button asp-route-siteId="@item.SiteId" asp-page-handler="UnlockSite" type="submit" class="btn btn-danger btn-sm me-1" style="font-size: 0.8rem;">
+                                            <i class="fas fa-unlock"></i> Unlock
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button asp-route-siteId="@item.SiteId" asp-page-handler="LockSite" type="submit" class="btn btn-warning btn-sm me-1" style="font-size: 0.8rem;">
+                                            <i class="fas fa-lock"></i> Lock
+                                        </button>
+                                    }
+                                </form>
+                                <a asp-page="./Upsert" asp-route-siteId="@item.SiteId" class="btn btn-success btn-sm me-1" style="font-size: 0.8rem;">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+
+                                <a asp-page="./Details" asp-route-siteId="@item.SiteId" class="btn btn-primary btn-sm me-1" style="font-size: 0.8rem;">
+                                    <i class="fas fa-circle-info"></i> Details
+                                </a>
+                                <a asp-page="/Admin/Photos/Index" asp-route-siteId="@item.SiteId" class="btn btn-primary btn-sm" style="font-size: 0.8rem;">
+                                    <i class="fas fa-images"></i> Photos
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        //make search bar for description equal to the one for name..
+        function ResetSiteSearch()
+        {
+            var reset = document.getElementById("siteSearchResetBtn");
+
+            reset.value = true;
+
+            var searchType = document.getElementById("ddlSearchType");
+            searchType.selectedIndex = 0;
+
+            var siteType = document.getElementById("ddlSiteType");
+            siteType.selectedIndex = 0;
+
+            var searchBar = document.getElementById("siteSearchBar");
+
+            searchBar.value = "";
+
+
+        }
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('#unlock-site-button').click(function () {
+                $.ajax({
+                    type: 'POST',
+                    url: "/api/site/UnlockSite",
+                    data: $('#site-table-id').val(),
+                    success: function (data) {
+                        if (data.success) {
+                            alert(data.message);
+                            dataTable.ajax.reload();
+                        }
+                        else {
+                            alert(data.message);
+                        }
+                    }
+                 })
+            });
+        });
+    </script>
+    <script>
+           $(document).ready(function () {
+           $('#siteTable').DataTable({
+               "paging": true,
+               "ordering": true,
+               "info": true,
+               "searching": false,
+               "responsive": true,
+               "autoWidth": false,
+                "columns": [
+                    { "width": "5%" },
+                    { "width": "45%" },
+                    { "width": "10%" },
+                    { "width": "15%" },
+                    { "width": "25%" }
+                ],
+                "language": {
+                    "emptyTable": "No sites found."
+                },
+                "width": "100%"
+           });
+        });
+    </script>
+}

@@ -1,0 +1,141 @@
+﻿@page
+@model RVPark.Pages.Admin.Prices.CreateModel
+@{
+    ViewData["Title"] = "Create Price Range";
+}
+<div class="col-12 px-3" style="border-bottom:1px solid #325d88">
+    <h2 class="text-primary">Create New Price</h2>
+</div>
+<form method="post">
+    <div class="container">  
+        <div class="row">
+		    <div class="col-4">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <!-- Hidden fields for state -->
+                <input type="hidden" asp-for="Price.SiteTypeId" value="@Model.SiteType.SiteTypeId" />
+                <input type="hidden" asp-for="LatestPrice" value="@Model.LatestPrice" />
+            
+                <!--Start Date Input-->
+                <div class="form-group mb-3">
+                    <span class="text-danger">*</span>
+                    <label asp-for="Price.StartDate" class="control-label"></label>
+                    <input asp-for="Price.StartDate" class="form-control" type="date" id="start_date" />
+                    <span asp-validation-for="Price.StartDate" class="text-danger"></span>
+					<div id="price_validate"></div>
+                </div>
+
+                <!--Place holder that shows sitetype-->
+                <div class="form-group mb-3">
+                    <span class="text-danger">*</span>
+                    <label class="control-label">Site Type</label>
+                    <input value="@Model.SiteType.Name" class="form-control" readonly/>
+                </div>
+                <!--Price Per Day Input-->
+                <div class="form-group mb-3">
+                    <span class="text-danger">*</span>
+                    <label asp-for="Price.PricePerDay" class="control-label"></label>
+                    <input asp-for="Price.PricePerDay" class="form-control" id="priceInput" />
+                    <div id="priceValidation"></div>
+                </div>
+                <!--Action Buttons-->
+                <div class="form-group">
+                    <input type="submit" value="Create" id="submit_button" class="btn btn-primary"  disabled/>
+                    <a class="btn btn-secondary" asp-page="../SiteTypes/Index">Back to List</a>
+                </div>
+		    </div>
+            <!--Right Side Column-->
+            <div class="col-4">
+                <div class="mt-4 p-3 border rounded bg-light" id="availabilityStatus">
+                    <h5>Pricing Note</h5>
+                    <p class="text-muted">Start Date must be later than the date below</p>
+                    <input asp-for="LatestPrice.StartDate" id="latest_start" disabled />
+                </div>
+            </div>
+        </div>
+	</div>
+</form>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            let dateready = false;
+            let priceready = false;
+            var today = new Date();
+            today.setHours(0,0,0,0);
+
+            function checkReady() {
+                if(dateready == true && priceready == true) {
+                    $('#submit_button').prop('disabled', false);
+                }
+            }
+
+            function checkDate() {
+                var inputStartDate = new Date($('#start_date').val());
+                var latestStartDate = new Date($('#latest_start').val());
+
+                if(inputStartDate <= latestStartDate || inputStartDate == null) {
+                    $('#price_validate').html(`
+                            <p class="text-danger">Input start date must be after latest price start date.</p>
+                        `);
+                    $('#submit_button').prop('disabled', true);
+                    dateready = false;
+                }
+                else if (inputStartDate.getTime() + 1 * 24 * 60 * 60 * 1000 < today) {
+                    $('#price_validate').html(`
+                            <p class="text-danger">Input start date can't be before today's date.</p>
+                        `);
+                    $('#submit_button').prop('disabled', true);
+                    dateready = false;
+                }
+                else {
+                    $('#price_validate').html(``);
+                    dateready = true;
+                    checkReady();
+                }
+            }
+
+            function checkPrice() {
+                var inputPrice = $('#priceInput').val();
+
+                if(isNaN(inputPrice)) {
+                    $('#priceValidation').html(`
+                            <p class="text-danger">Price must be a number</p>
+                        `);
+                    $('#submit_button').prop('disabled', true);
+                    priceready = false;
+                }
+                else if(parseFloat(inputPrice) <= 0 || inputPrice == "") {
+                    $('#priceValidation').html(`
+                            <p class="text-danger">Price must be greater than 0</p>
+                        `);
+                    $('#submit_button').prop('disabled', true);
+                    priceready = false;
+                }
+                else {
+                    $('#priceValidation').html(``);
+                    priceready = true;
+                    checkReady();
+                }
+            }
+
+            $('#start_date').val(today.toLocaleDateString('en-CA'));
+
+            checkDate();
+
+            checkReady();
+
+            $('#start_date').change(function() {
+                checkDate();
+            });
+
+            $('#priceInput').keyup(function() {
+                checkPrice();
+            });
+
+            $('#priceInput').change(function() {
+                checkPrice();
+            });            
+        });
+    </script>
+}

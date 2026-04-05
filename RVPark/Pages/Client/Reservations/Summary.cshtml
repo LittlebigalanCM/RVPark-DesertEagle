@@ -1,0 +1,949 @@
+﻿@page
+@model RVPark.Pages.Client.Reservations.SummaryModel
+@using Infrastructure.Services
+@using Infrastructure.Utilities
+@using Microsoft.Extensions.Options
+@using System.Globalization
+@using ApplicationCore.Dtos;
+@inject IOptions<Infrastructure.Services.StripeSettings> Stripe
+@{
+    ViewData["Title"] = "Reservation Summary";
+}
+@{
+    bool isAdmin = User.IsInRole(SD.AdminRole) || User.IsInRole(SD.StaffRole) || User.IsInRole(SD.CampHostRole);
+    bool isAdminCreated = TempData["AdminCreated"]?.ToString() == "true";
+}
+<style>
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .is-invalid {
+        border-color: #dc3545 !important;
+    }
+</style>
+
+<form id="payment-form" method="post" asp-page-handler="Checkout">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="ReturnUrl" />
+    @* <input type="hidden" id="baseRate" value="@Model.DailyRate" /> *@
+    <input type="hidden" id="numberOfNights" value="@Model.NumberOfDays" />
+
+    <div class="container">
+        <div class="row px-2 mx-2 backgroundWhite border">
+            <div class="col-12 px-3" style="border-bottom:1px solid #325d88">
+                @if (isAdmin && isAdminCreated)
+                {
+                    <h2 class="text-primary"><i class="fas fa-user-shield me-2"></i>Processing Reservation for Customer</h2>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        You are creating this reservation as an administrator. The customer will receive confirmation details.
+                    </div>
+                }
+                else
+                {
+                    <h2 class="text-primary">Reservation Summary</h2>
+                }
+            </div>
+
+            <div class="col-12 pt-3">
+                @if (Model.RequiresPCS)
+                {
+                    <div class="form-group row mb-3" id="PCSMessage">
+                        <div class="col-sm-8">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> Your reservation will be marked as "Pending" until proof of PCS orders is provided.
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (Model.RequiresDisability)
+                {
+                    <div class="form-group row mb-3" id="PCSMessage">
+                        <div class="col-sm-8">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> Your reservation will be marked as "Pending" until proof of Disability is provided.
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h4 class="my-2">Reservation Details for @Model.guestName</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="row border-bottom">
+                                    <div class="col-md-4 my-3 fw-bold">Guest Name:</div>
+                                    <div class="col-md-8 my-3">@Model.guestName</div>
+                                </div>
+                                <div class="row border-bottom">
+                                    <div class="col-md-4 my-3 fw-bold">Guest Email:</div>
+                                    <div class="col-md-8 my-3">@Model.guestEmail</div>
+                                </div>
+                                <div class="row border-bottom">
+                                    <div class="col-md-4 my-3 fw-bold">Site:</div>
+                                    <div class="col-md-8 my-3">@Model.SiteName (@Model.SiteType)</div>
+                                </div>
+                                <div class="row border-bottom">
+                                    <div class="col-md-4 my-3 fw-bold">Check-in Date:</div>
+                                    <div class="col-md-8 my-3">@DateTime.Parse(TempData["StartDate"].ToString()).ToShortDateString()</div>
+                                </div>
+                                <div class="row border-bottom">
+                                    <div class="col-md-4 my-3 fw-bold">Check-out Date:</div>
+                                    <div class="col-md-8 my-3">@DateTime.Parse(TempData["EndDate"].ToString()).ToShortDateString()</div>
+                                </div>
+                                <div class="row border-bottom">
+                                    <div class="col-md-4 my-3 fw-bold">Stay Duration:</div>
+                                    <div class="col-md-8 my-3">
+                                        @Model.NumberOfDays @(Model.NumberOfDays != 1 ? "nights" : "night")
+                                    </div>
+                                </div>
+                                @if (TempData["TrailerLength"].ToString() != "N/A")
+                                {
+                                    <div class="row">
+                                        <div class="col-md-4 my-3 fw-bold">Trailer Length:</div>
+                                        <div class="col-md-8 my-3">@TempData["TrailerLength"] ft</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                                <h4 class="my-2">Additional Information</h4>
+                                @if (User.IsInRole(SD.AdminRole))
+                                {
+                                    <a asp-page="/Admin/Fees/ManageDynamicFields" class="btn btn-sm btn-outline-light border border-white">
+                                        <i class="fas fa-sliders-h me-1"></i> Manage Dynamic Fields
+                                    </a>
+                                }
+                            </div>
+                            <div class="card-body">
+                                @foreach (var field in Model.DynamicFieldDefinitions)
+                                {
+                                    var fieldName = field.FieldName;
+                                    var inputValue = Model.DynamicDataInput.ContainsKey(fieldName) ? Model.DynamicDataInput[fieldName] : "";
+                                    var note = field.Note ?? "";
+                                    var trigger = field.NoteTrigger ?? "OnFocus";
+
+                                    <div class="form-group dynamic-field-container mb-3" data-field-name="@field.FieldName">
+                                        <label class="form-label">@field.DisplayLabel</label>
+
+                                        @switch (field.FieldType)
+                                        {
+                                            case ApplicationCore.Enums.DynamicFieldType.Text:
+                                                {
+                                                    <div class="form-control-plaintext" >@((!string.IsNullOrWhiteSpace(inputValue) ? inputValue : field.Note) ?? "")</div>
+                                                    break;
+                                                }
+                                            case ApplicationCore.Enums.DynamicFieldType.TextInput:
+                                                {
+                                                    <input type="text"
+                                                           name="DynamicDataInput[@field.FieldName]"
+                                                           class="form-control dynamic-field-input"
+                                                           value="@inputValue"
+                                                           data-field-name="@field.FieldName"
+                                                           data-note="@note"
+                                                           data-note-trigger="@trigger"
+                                                           data-disable-pay="@field.DisablePayOnDisagree.ToString().ToLower()" required />
+                                                    break;
+                                                }
+                                            case ApplicationCore.Enums.DynamicFieldType.Number:
+                                                {
+                                                    <input type="number"
+                                                           name="DynamicDataInput[@field.FieldName]"
+                                                           class="form-control dynamic-field-input"
+                                                           min="@(field.MinValue ?? 0)"
+                                                           value="@(string.IsNullOrWhiteSpace(inputValue) ? field.DefaultValue : inputValue)"
+                                                           data-field-name="@field.FieldName"
+                                                           data-note="@note"
+                                                           data-note-trigger="@trigger"
+                                                           data-disable-pay="@field.DisablePayOnDisagree.ToString().ToLower()" required />
+                                                    break;
+                                                }
+                                            case ApplicationCore.Enums.DynamicFieldType.Dropdown:
+                                                {
+                                                    <select name="DynamicDataInput[@field.FieldName]"
+                                                            class="form-select dynamic-field-input"
+                                                            data-field-name="@field.FieldName"
+                                                            data-note="@note"
+                                                            data-note-trigger="@trigger"
+                                                            data-disable-pay="@field.DisablePayOnDisagree.ToString().ToLower()"
+                                                            required>
+                                                        <option value="">Select...</option>
+
+                                                        @if (!string.IsNullOrWhiteSpace(field.OptionsJson))
+                                                        {
+                                                            try
+                                                            {
+                                                                using var doc = System.Text.Json.JsonDocument.Parse(field.OptionsJson);
+                                                                var root = doc.RootElement;
+
+                                                                if (root.TryGetProperty("Options", out var optionsElement) && optionsElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+                                                                {
+                                                                    string defaultOption = root.TryGetProperty("Default", out var defEl)
+                                                                    ? defEl.GetString()
+                                                                    : null;
+
+                                                                    string currentValue = inputValue?.Trim();
+
+                                                                    foreach (var optEl in optionsElement.EnumerateArray())
+                                                                    {
+                                                                        var optText = optEl.GetString()?.Trim();
+                                                                        if (string.IsNullOrWhiteSpace(optText))
+                                                                            continue;
+
+                                                                        bool isSelected = !string.IsNullOrWhiteSpace(currentValue)
+                                                                        ? string.Equals(currentValue, optText, StringComparison.OrdinalIgnoreCase)
+                                                                        : string.Equals(defaultOption, optText, StringComparison.OrdinalIgnoreCase);
+
+                                                                        <option value="@optText" selected="@(isSelected ? "selected" : null)">@optText</option>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <option disabled value="">⚠ Invalid or missing options in JSON</option>
+                                                                }
+                                                            }
+                                                            catch (Exception ex)
+                                                            {
+                                                                <option disabled value="">⚠ Failed to parse options: @ex.Message</option>
+                                                            }
+                                                        }
+                                                    </select>
+                                                    break;
+                                                }
+                                            case ApplicationCore.Enums.DynamicFieldType.Checkbox:
+                                                {
+                                                    var isChecked = inputValue == "true" || inputValue == "on";
+                                                    <div class="form-check">
+                                                        <input class="form-check-input dynamic-field-input"
+                                                               type="checkbox"
+                                                               name="DynamicDataInput[@field.FieldName]"
+                                                               value="true"
+                                                               @(isChecked ? "checked" : "")
+                                                               data-field-name="@field.FieldName"
+                                                               data-note="@note"
+                                                               data-disable-pay="@field.DisablePayOnDisagree.ToString().ToLower()" />
+                                                        <label class="form-check-label">@field.DisplayLabel</label>
+                                                    </div>
+                                                    <input type="hidden" name="DynamicDataInput[@field.FieldName]" value="false" />
+                                                    break;
+                                                }
+                                            case ApplicationCore.Enums.DynamicFieldType.Agreement:
+                                                {
+                                                    <input type="text"
+                                                           class="form-control dynamic-field-input agreement-field"
+                                                           name="DynamicDataInput[@field.FieldName]"
+                                                           value="@(!string.IsNullOrWhiteSpace(inputValue) ? inputValue : "")"
+                                                           placeholder="Tap to review"
+                                                           readonly
+                                                           data-field-name="@field.FieldName"
+                                                           data-note="@note"
+                                                           data-disable-pay="@field.DisablePayOnDisagree.ToString().ToLower()"
+                                                           data-note-agree-text="@(string.IsNullOrWhiteSpace(field.NoteAgreeText) ? "Agree" : field.NoteAgreeText)"
+                                                           data-note-disagree-text="@(string.IsNullOrWhiteSpace(field.NoteDisagreeText) ? "Disagree" : field.NoteDisagreeText)" />
+                                                    break;
+                                                }
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-5">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="my-2">Cost Summary</h5>
+                            </div>
+                            <div class="card-body px-4">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="fw-semibold">Base Cost</span>
+                                        <span class="fw-semibold" id="baseAmountDisplay">@Model.BaseAmount.ToString("C")</span>
+                                    </div>
+                                    @foreach (var price in Model.Prices)
+                                    {
+                                        <div class="text-muted small fst-italic">
+                                            @{
+                                                TimeSpan? totalDaysTimespan = price.EndDate - price.StartDate;
+                                                //int totalDays = (int)totalDaysTimespan.Value.TotalDays + (Model.Prices.Last() == price ? 0 : 1);
+                                                int totalDays = (int)Math.Round(totalDaysTimespan.Value.TotalDays) + (Model.Prices.Last() == price ? 0 : 1);
+                                                decimal amount = price.PricePerDay * totalDays;
+                                            }
+
+                                            @totalDays @(totalDays != 1 ? "nights" : "night") x @price.PricePerDay.ToString("C") = @amount.ToString("C")
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Dynamic fees container - populated by JavaScript -->
+                                <div id="extraFeesContainer"></div>
+
+                                <div class="border-top pt-3 mt-3 d-flex justify-content-between fw-bold fs-5">
+                                    <span>Total</span>
+                                    <span id="totalAmountDisplay">@Model.TotalAmount.ToString("C", CultureInfo.GetCultureInfo("en-US"))</span>
+                                </div>
+
+                                <div class="card-footer bg-light mt-3">
+                                    @if (User.IsInRole(SD.AdminRole))
+                                    {
+                                        <div class="mb-3">
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" asp-for="PaymentMethod" type="radio" value="Cash" id="cashRadio">
+                                                <label class="form-check-label" for="cashRadio">Cash</label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" asp-for="PaymentMethod" type="radio" value="Check" id="checkRadio">
+                                                <label class="form-check-label" for="checkRadio">Check</label>
+                                                <div id="CheckInfo" style="display:none;">
+                                                    <div class="form-control mb-2">
+                                                        <label class="form-label">Check Number</label>
+                                                        <input class="form-control" asp-for="Check.CheckNumber" type="number" inputmode="numeric" id="checkNum"/>
+                                                        <label class="form-label">Date</label>
+                                                        <input type="date" class="form-control" asp-for="Check.CheckDateTime" id="checkDate" />
+                                                        <label class="form-label">Amount</label>
+                                                        <input class="form-control" asp-for="Check.Amount" type="number" step="0.01" min="0" value="0.00" id="checkAmount" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" asp-for="PaymentMethod" type="radio" value="Credit" id="creditRadio" checked>
+                                                <label class="form-check-label" for="creditRadio">Credit</label>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="form-check mb-2 d-none">
+                                            <input class="form-check-input" asp-for="PaymentMethod" type="radio" value="Credit" id="creditRadio" checked>
+                                            <label class="form-check-label" for="creditRadio">Credit</label>
+                                        </div>
+                                    }
+
+                                    <div id="creditCardInfo" class="form-control mb-3">
+                                        <input type="hidden" name="stripeToken" id="stripeToken" />
+                                        <div class="form-group mb-3" id="credit-card-input">
+                                            <label for="card-num-element">Credit Card Number</label>
+                                            <div id="card-num-element" class="form-control p-2 border rounded"></div>
+                                        </div>
+                                        <div class="form-group mb-3">
+                                            <label for="card-exp-element">Expiration Date</label>
+                                            <div id="card-exp-element" class="form-control p-2 border rounded"></div>
+                                        </div>
+                                        <div class="form-group mb-3">
+                                            <label for="card-cvc-element">Security Code (CVC)</label>
+                                            <div id="card-cvc-element" class="form-control p-2 border rounded"></div>
+                                        </div>
+                                    </div>
+
+                                    <button id="admin-normal-submit" type="submit" class="btn btn-success btn-lg form-control">
+                                        <i class="fas fa-credit-card"></i>
+                                        @(isAdmin ? "Process Payment for Customer - $" : "Complete Reservation - $")
+                                        <span id="checkoutAmount">@Model.TotalAmount.ToString("0.00")</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="modal fade" id="dynamicFieldNoteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Notice</h5></div>
+            <div class="modal-body" id="dynamicFieldNoteContent"></div>
+            <div class="modal-footer" id="dynamicFieldNoteButtons"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        const payButton = document.getElementById("admin-normal-submit");
+        const agreementFields = document.querySelectorAll(".agreement-field");
+
+        agreementFields.forEach(field => {
+            field.addEventListener("click", function () {
+                const agreeText = this.dataset.noteAgreeText || "Agree";
+                const disagreeText = this.dataset.noteDisagreeText || "Disagree";
+                const disablePay = this.dataset.disablePay === "true";
+                const modalHtml = `
+                    <div class="modal fade" id="agreementModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                        <div class="modal-header"><h5 class="modal-title">Agreement</h5></div>
+                        <div class="modal-body">${this.dataset.note}</div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-danger" id="disagreeBtn">${disagreeText}</button>
+                            <button type="button" class="btn btn-success" id="agreeBtn">${agreeText}</button>
+                        </div>
+                        </div>
+                    </div>
+                    </div>`;
+                document.body.insertAdjacentHTML("beforeend", modalHtml);
+                const modal = new bootstrap.Modal(document.getElementById("agreementModal"));
+                modal.show();
+
+                document.getElementById("agreeBtn").onclick = () => {
+                    this.value = "Agreed";
+                    this.classList.remove("is-invalid");
+                    payButton.disabled = false;
+                    modal.hide();
+                    document.getElementById("agreementModal").remove();
+                };
+                document.getElementById("disagreeBtn").onclick = () => {
+                    this.value = "Disagreed";
+                    if (disablePay) payButton.disabled = true;
+                    this.classList.add("is-invalid");
+                    modal.hide();
+                    document.getElementById("agreementModal").remove();
+                };
+            });
+        });
+    </script>
+    <script>
+        const shownNoteFields = new Set();
+        let lastDisagreedField = null;
+        let waitingForNoteAcknowledge = false;
+
+        $(document).ready(function () {
+            restoreHiddenFields();
+            // Trigger initial fee calculation on page load
+            recalculateFees();
+
+            //make the additional fields disabled to start
+            const dynamicFields = document.querySelectorAll(".dynamic-field-input");
+            dynamicFields.forEach(f => f.disabled = true);
+
+
+            // Bind change events to all dynamic fields
+            $(".dynamic-field-input").on("change", recalculateFees);
+
+            $(document).on("focus", "input.dynamic-field-input", function () {
+                const input = $(this);
+                const fieldName = input.data("field-name");
+                const note = input.data("note");
+                const trigger = input.data("note-trigger");
+                const isDisabled = $("#admin-normal-submit").attr("data-disabled-via-disagree") === "true";
+
+                if (
+                    note &&
+                    (trigger === "OnFocus" || trigger === "OnEngagement") &&
+                    !shownNoteFields.has(fieldName) &&
+                    !isDisabled
+                ) {
+                    showDynamicFieldNoteModal(
+                        note,
+                        input.data("note-agree-text"),
+                        input.data("agree-redirect-url"),
+                        input.data("note-disagree-text"),
+                        input.data("disagree-redirect-url"),
+                        true,
+                        fieldName
+                    );
+                }
+            });
+
+            $(document).on("input", "input.dynamic-field-input", function () {
+                const input = $(this);
+                const val = parseInt(input.val());
+                const max = parseInt(input.attr("max"));
+                const trigger = input.data("note-trigger");
+                const note = input.data("note");
+                const fieldName = input.data("field-name");
+                const isDisabled = $("#admin-normal-submit").attr("data-disabled-via-disagree") === "true";
+
+                if (trigger === "AtMax" && !isNaN(val) && val === max && note && (isDisabled || !shownNoteFields.has(fieldName))) {
+                    showDynamicFieldNoteModal(
+                        note,
+                        input.data("note-agree-text"),
+                        input.data("agree-redirect-url"),
+                        input.data("note-disagree-text"),
+                        input.data("disagree-redirect-url"),
+                        true,
+                        fieldName
+                    );
+                }
+            });
+
+            const adminToggleBtn = document.getElementById("adminModeToggle");
+            const adminControls = document.querySelectorAll(".admin-controls");
+            const adminControlPanel = document.getElementById("adminControls");
+
+            if (adminToggleBtn) {
+                adminToggleBtn.addEventListener("click", function () {
+                    const isActive = adminToggleBtn.classList.contains("active");
+                    adminToggleBtn.classList.toggle("active");
+                    adminToggleBtn.textContent = isActive ? "Enter Admin Mode" : "Exit Admin Mode";
+                    adminControls.forEach(ctrl => ctrl.classList.toggle("d-none", isActive));
+                    adminControlPanel?.classList.toggle("d-none", isActive);
+                });
+            }
+        });
+
+        function restoreHiddenFields() {
+            $(".dynamic-field-container").each(function () {
+                const fieldName = $(this).data("field-name");
+                if (sessionStorage.getItem(`hidden-${fieldName}`) === "true") {
+                    $(this).hide();
+                    $(this).find("input").val("");
+                }
+            });
+        }
+
+        function recalculateFees() {
+            const formData = new FormData(document.getElementById("payment-form"));
+
+            // Debug: Log what we're sending
+            console.log("Sending form data for fee calculation:");
+            for (let [key, value] of formData.entries()) {
+                if (key.startsWith("DynamicDataInput")) {
+                    console.log(`  ${key}: ${value}`);
+                }
+            }
+
+            fetch("?handler=UpdateExtraFees", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                console.log("Fee calculation response:", data);
+                updateFeeDisplay(data.evaluations, data.baseAmount, data.totalAmount);
+            })
+            .catch(err => {
+                console.error("Fee calculation failed:", err);
+            });
+        }
+
+        function updateFeeDisplay(evals, baseAmount, totalAmount) {
+            const container = document.getElementById("extraFeesContainer");
+            container.innerHTML = "";
+
+            if (evals && evals.length > 0) {
+                evals.forEach(fee => {
+                    const amt = parseFloat(fee.amount) || 0;
+                    if (amt <= 0) return;
+
+                    const wrapper = document.createElement("div");
+                    wrapper.classList.add("mb-3");
+
+                    // Main row with label and amount
+                    const mainRow = document.createElement("div");
+                    mainRow.classList.add("d-flex", "justify-content-between", "mb-1");
+                    mainRow.innerHTML = `
+                        <span class="fw-semibold">${fee.label}</span>
+                        <span class="fw-semibold">$${amt.toFixed(2)}</span>
+                    `;
+                    wrapper.appendChild(mainRow);
+
+                    // Breakdown text
+                    let breakdownText = "";
+                    const calcType = fee.calculationType;
+                    const units = parseInt(fee.units) || 0;
+                    const nights = parseInt(fee.numberOfNights) || 1;
+                    const perUnitAmt = parseFloat(fee.perUnitAmount) || 0;
+                    const percentage = parseFloat(fee.percentage) || 0;
+                    const isPerNight = fee.isPerNight;
+
+                    // Build breakdown based on calculation type
+                    // CalculationType enum: StaticAmount=0, PercentOfTotal=1, PerUnit=2, DailyRate=3
+                    breakdownText = fee.breakdown || "";
+
+                    if (breakdownText) {
+                        const detailLine = document.createElement("div");
+                        detailLine.classList.add("text-muted", "small", "fst-italic");
+                        detailLine.textContent = breakdownText;
+                        wrapper.appendChild(detailLine);
+                    }
+
+                    container.appendChild(wrapper);
+                });
+            }
+
+            // Update totals
+            document.getElementById("baseAmountDisplay").textContent = `$${parseFloat(baseAmount || 0).toFixed(2)}`;
+            document.getElementById("totalAmountDisplay").textContent = `$${parseFloat(totalAmount || 0).toFixed(2)}`;
+            document.getElementById("checkoutAmount").textContent = parseFloat(totalAmount || 0).toFixed(2);
+        }
+    </script>
+    <script>
+        function showDynamicFieldNoteModal(note, agreeText, agreeUrl, disagreeText, disagreeUrl, disablePay = false, fieldName = null) {
+            const container = document.getElementById("dynamicFieldNoteContent");
+            const buttons = document.getElementById("dynamicFieldNoteButtons");
+            const modalEl = document.getElementById("dynamicFieldNoteModal");
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            const stripePayButton = document.querySelector("#admin-normal-submit");
+
+            if (!modalEl || modalEl.classList.contains("show")) return;
+
+            container.textContent = note || "";
+            buttons.innerHTML = "";
+
+            if (agreeText) {
+                const agreeBtn = document.createElement("button");
+                agreeBtn.className = "btn btn-success me-2";
+                agreeBtn.textContent = agreeText;
+                agreeBtn.type = "button";
+                agreeBtn.onclick = () => {
+                    if (stripePayButton) {
+                        stripePayButton.classList.remove("disabled");
+                        stripePayButton.removeAttribute("data-disabled-via-disagree");
+                    }
+                    if (fieldName) shownNoteFields.add(fieldName);
+                    modal.hide();
+                    if (agreeUrl?.trim()) {
+                        window.location.href = agreeUrl;
+                    }
+                };
+                buttons.appendChild(agreeBtn);
+            }
+
+            if (disagreeText) {
+                const disagreeBtn = document.createElement("button");
+                disagreeBtn.className = "btn btn-danger";
+                disagreeBtn.textContent = disagreeText;
+                disagreeBtn.type = "button";
+                disagreeBtn.onclick = () => {
+                    if (disablePay && stripePayButton) {
+                        stripePayButton.classList.add("disabled");
+                        stripePayButton.setAttribute("data-disabled-via-disagree", "true");
+                        lastDisagreedField = fieldName;
+                    }
+
+                    modal.hide();
+
+                    if (disagreeUrl?.trim()) {
+                        window.location.href = disagreeUrl;
+                    }
+                };
+                buttons.appendChild(disagreeBtn);
+            }
+
+            if (!agreeText && !disagreeText) {
+                const closeBtn = document.createElement("button");
+                closeBtn.className = "btn btn-secondary";
+                closeBtn.textContent = "I Acknowledge";
+                closeBtn.type = "button";
+                closeBtn.onclick = () => {
+                    if (fieldName) shownNoteFields.add(fieldName);
+                    modal.hide();
+                };
+                buttons.appendChild(closeBtn);
+            }
+
+            modal.show();
+        }
+
+        $(document).on("click", ".edit-note-btn", function () {
+            const fieldName = $(this).data("field-name");
+            const input = $(`input[data-field-name='${fieldName}']`);
+            if (!input.length) return;
+
+            $("#noteFieldName").val(fieldName);
+            $("#noteText").val(input.data("note"));
+            $("#noteTrigger").val(input.data("note-trigger"));
+            $("#defaultValue").val(input.data("default"));
+            $("#minValue").val(input.data("min"));
+            $("#maxValue").val(input.data("max"));
+            $("#noteAgreeText").val(input.data("note-agree-text"));
+            $("#noteDisagreeText").val(input.data("note-disagree-text"));
+            $("#agreeRedirectUrl").val(input.data("agree-redirect-url"));
+            $("#disagreeRedirectUrl").val(input.data("disagree-redirect-url"));
+            $("#disablePayOnDisagreeCheckbox").prop("checked", input.data("disable-pay") === true);
+
+            const showOptions = input.data("note-agree-text") || input.data("note-disagree-text");
+            $("#buttonMode").val(showOptions ? "buttons" : "none");
+            $("#agreeDisagreeOptions").toggleClass("d-none", !showOptions);
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById("noteEditModal")).show();
+        });
+
+        $("#saveNoteModalBtn").on("click", function () {
+            const payload = {
+                fieldName: $("#noteFieldName").val(),
+                note: $("#noteText").val(),
+                noteTrigger: $("#noteTrigger").val(),
+                defaultValue: $("#defaultValue").val(),
+                minValue: $("#minValue").val(),
+                maxValue: $("#maxValue").val(),
+                noteAgreeText: $("#noteAgreeText").val(),
+                noteDisagreeText: $("#noteDisagreeText").val(),
+                agreeRedirectUrl: $("#agreeRedirectUrl").val(),
+                disagreeRedirectUrl: $("#disagreeRedirectUrl").val(),
+                disablePayOnDisagree: $("#disablePayOnDisagreeCheckbox").is(":checked")
+            };
+
+            $.ajax({
+                type: "POST",
+                url: "/CustomDynamicField/UpdateFieldNote",
+                data: payload,
+                success: function (response) {
+                    if (response.success) {
+                        const input = $(`input[data-field-name='${payload.fieldName}']`);
+                        input
+                            .data("note", payload.note)
+                            .data("note-trigger", payload.noteTrigger)
+                            .data("default", payload.defaultValue)
+                            .data("min", payload.minValue)
+                            .data("max", payload.maxValue)
+                            .data("note-agree-text", payload.noteAgreeText)
+                            .data("note-disagree-text", payload.noteDisagreeText)
+                            .data("agree-redirect-url", payload.agreeRedirectUrl)
+                            .data("disagree-redirect-url", payload.disagreeRedirectUrl)
+                            .data("disable-pay", payload.disablePayOnDisagree);
+
+                        input.addClass("bg-success-subtle");
+                        setTimeout(() => input.removeClass("bg-success-subtle"), 1000);
+
+                        bootstrap.Modal.getInstance(document.getElementById("noteEditModal"))?.hide();
+                    } else {
+                        alert("Update failed.");
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Save error:", xhr.responseText);
+                    alert("Failed to save. Check console for details.");
+                }
+            });
+        });
+    </script>
+    <script>
+        document.querySelectorAll("input[name='PaymentMethod']").forEach(r => {
+            r.addEventListener("change", () => {
+                const checkInfo = document.getElementById("CheckInfo");
+                const creditInfo = document.getElementById("creditCardInfo");
+                if (!checkInfo || !creditInfo) return;
+
+                if (r.value === "Check" && r.checked) {
+                    checkInfo.style.display = "block";
+                    creditInfo.style.display = "none";
+                } else if (r.value === "Credit" && r.checked) {
+                    creditInfo.style.display = "block";
+                    checkInfo.style.display = "none";
+                } else if (r.value === "Cash" && r.checked) {
+                    checkInfo.style.display = "none";
+                    creditInfo.style.display = "none";
+                }
+            });
+        });
+
+            const stripe = Stripe("@Model.StripePublicKey");
+            const elements = stripe.elements();
+
+            const cardNum = elements.create("cardNumber", {
+                style: {
+                    base: {
+                        fontSize: '16px',
+                        color: '#212529',
+                        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                        '::placeholder': { color: '#6c757d' }
+                    },
+                    invalid: { color: '#dc3545' }
+                }
+            });
+            cardNum.mount("#card-num-element");
+
+            const cardExp = elements.create("cardExpiry", {
+                style: {
+                    base: {
+                        fontSize: '16px',
+                        color: '#212529',
+                        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                        '::placeholder': { color: '#6c757d' }
+                    },
+                    invalid: { color: '#dc3545' }
+                }
+            });
+            cardExp.mount("#card-exp-element");
+
+            const cardCvc = elements.create("cardCvc", {
+                style: {
+                    base: {
+                        fontSize: '16px',
+                        color: '#212529',
+                        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                        '::placeholder': { color: '#6c757d' }
+                    },
+                    invalid: { color: '#dc3545' }
+                }
+            });
+            cardCvc.mount("#card-cvc-element");
+
+                    // Dynamic fields to be toggled
+        const dynamicFields = document.querySelectorAll(".dynamic-field-input");
+
+        function check(enable) {
+            dynamicFields.forEach(f => f.disabled = !enable);
+        }
+
+        // Detect what payment methods the page actually has
+        const cardRadio = document.querySelector("input[value='Credit']");
+        const checkRadio = document.querySelector("input[value='Check']");
+
+        // Determine mode
+        const paymentRadios = document.querySelectorAll("input[name='PaymentMethod'][type='radio']");
+        const isAdmin = paymentRadios.length > 0;
+        const isCustomer = !isAdmin;
+
+
+        // ---------------------------------------------
+        // CREDIT CARD LOGIC (works for admin + customer)
+        // ---------------------------------------------
+        let numberComplete = false;
+        let expComplete = false;
+        let cvcComplete = false;
+
+        cardNum.on("change", e => { numberComplete = e.complete; updateCreditState(); });
+        cardExp.on("change", e => { expComplete = e.complete; updateCreditState(); });
+        cardCvc.on("change", e => { cvcComplete = e.complete; updateCreditState(); });
+
+        function updateCreditState() {
+            const allComplete = numberComplete && expComplete && cvcComplete;
+            check(allComplete);
+        }
+
+        // If this is the customer page → force credit-mode behavior
+        if (isCustomer) {
+            // Initially disable fields until credit fields filled
+            check(false);
+            // Nothing else needed — credit listeners above handle enabling.
+            
+        }
+
+        // ---------------------------------------------
+        // ADMIN-ONLY LOGIC BELOW THIS POINT
+        // ---------------------------------------------
+
+        // When admin selects a payment method
+        document.querySelectorAll("input[name='PaymentMethod']").forEach(radio => {
+            radio.addEventListener("change", () => {
+
+                if (radio.value === "Credit") {
+                    check(false); // Wait for credit field completion
+                }
+
+                if (radio.value === "Check") {
+                    startCheckTracking();
+                }
+
+                if (radio.value === "Cash") {
+                    check(true); // Cash always enables
+                }
+            });
+        });
+
+        // ---------------------------------------------
+        // CHECK PAYMENT LOGIC (ADMIN ONLY)
+        // ---------------------------------------------
+        function startCheckTracking() {
+
+            const checkNum = document.getElementById("checkNum");
+            const checkDate = document.getElementById("checkDate");
+            const checkAmount = document.getElementById("checkAmount");
+
+            if (!checkNum || !checkDate || !checkAmount) {
+                check(false);
+                return;
+            }
+
+            // Capture default values at the time payment mode is selected
+            const defaultNum = checkNum.value;
+            //const defaultDate = checkDate.value;
+            const defaultAmt = checkAmount.value;
+
+            function updateCheckState() {
+                const filled =
+                    checkNum.value !== defaultNum &&
+                    //checkDate.value !== defaultDate &&
+                    checkAmount.value !== defaultAmt;
+
+                check(filled);
+            }
+
+            checkNum.addEventListener("input", updateCheckState);
+            //checkDate.addEventListener("input", updateCheckState);
+            checkAmount.addEventListener("input", updateCheckState);
+
+            // Initially disabled until all three fields differ
+            check(false);
+        }
+
+
+
+            document.getElementById("payment-form").addEventListener("submit", async function (e) {
+                e.preventDefault();
+                let valid = true;
+
+                document.querySelectorAll(".dynamic-field-input[required]").forEach(f => {
+                    if (
+                        (f.type === "checkbox" && !f.checked) ||
+                        (f.type !== "checkbox" && (!f.value || f.value.trim() === ""))
+                    ) {
+                        f.classList.add("is-invalid");
+                        valid = false;
+                    } else {
+                        f.classList.remove("is-invalid");
+                    }
+                });
+
+                document.querySelectorAll(".agreement-field").forEach(f => {
+                    if (f.value !== "Agreed") {
+                        f.classList.add("is-invalid");
+                        valid = false;
+                    } else {
+                        f.classList.remove("is-invalid");
+                    }
+                });
+
+                const paymentMethod = document.querySelector("input[name='PaymentMethod']:checked")?.value;
+
+                if (!paymentMethod && @isAdmin.ToString().ToLower()) {
+                    alert("Please select a payment method.");
+                    return;
+                }
+
+                if (paymentMethod === "Check") {
+                    const checkNum = document.querySelector("input[name='Check.CheckNumber']");
+                    const checkDate = document.querySelector("input[name='Check.CheckDateTime']");
+                    const checkAmt = document.querySelector("input[name='Check.Amount']");
+                    if (checkNum.value == "0" && checkAmt.value == "0.00") {
+                        alert("Please complete all check payment details.");
+                        return;
+                    }
+                }
+
+                if (paymentMethod === "Credit" || !@isAdmin.ToString().ToLower()) {
+                    const { token, error } = await stripe.createToken(cardNum);
+                    if (error) {
+                        alert(error.message || "Invalid credit card information.");
+                        return;
+                    }
+                    document.getElementById("stripeToken").value = token.id;
+                }
+
+                if (!valid) {
+                    alert("Please fill in all required fields and agreements before continuing.");
+                    return;
+                }
+
+                e.target.submit();
+            });
+    </script>
+}

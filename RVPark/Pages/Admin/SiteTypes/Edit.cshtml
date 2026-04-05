@@ -1,0 +1,44 @@
+﻿@page
+@model RVPark.Pages.Admin.SiteTypes.EditModel
+@{
+    ViewData["Title"] = "Edit Site Type";
+}
+
+<div class="col-12 px-3" style="border-bottom:1px solid #325d88">
+    <h2 class="text-primary">Edit Site Type</h2>
+</div>
+<div class="row">
+    <div class="col-md-4">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="SiteType.SiteTypeId" />
+
+            <div class="form-group m2">
+                <span class="text-danger">*</span>
+                <label asp-for="SiteType.Name" class="control-label"></label>
+                <input asp-for="SiteType.Name" class="form-control" />
+                <span asp-validation-for="SiteType.Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="TrailerMaxSize" class="control-label">Max Trailer Length (ft)</label>
+                <input asp-for="TrailerMaxSize"
+                       class="form-control"
+                       type="number"
+                       step="5"
+                       min="0" />
+                <span asp-validation-for="TrailerMaxSize" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mt-2">
+                <input type="submit" value="Save" class="btn btn-primary" />
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='@Url.Page("./Index")'">Back to List</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

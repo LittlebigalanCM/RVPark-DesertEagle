@@ -1,0 +1,207 @@
+﻿@page
+@model RVPark.Pages.Admin.Fees.ManageDynamicFieldsModel
+@using Infrastructure.Utilities
+
+@{
+    ViewData["Title"] = "Manage Additional Information";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="text-secondary mb-0">Manage Additional Information</h1>
+            <p class="text-muted small mb-0">
+                Create and organize custom fields that can be used in fees or reservation rules.
+            </p>
+        </div>
+
+        <div class="d-flex flex-column align-items-end gap-2">
+            <a asp-page="./DynamicFieldUpsert"
+               asp-route-returnUrl="@Url.Page("./ManageDynamicFields")"
+               class="btn btn-success">
+                <i class="fas fa-plus me-1"></i> Add New Field
+            </a>
+            <a asp-page="/Admin/Fees/Index" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Fees
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    @if (Model.Fields == null || !Model.Fields.Any())
+    {
+        <div class="alert alert-info">
+            No additional fields found. Use <strong>Add New Field</strong> to create one.
+        </div>
+    }
+    else
+    {
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0 my-2"><i class="fas fa-sliders-h me-2"></i> Additional Fields</h5>
+                <small class="text-light">Drag rows to reorder fields by display order.</small>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered" id="sortableTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 70px;">Order</th>
+                                <th>Display Label</th>
+                                <th>Field Type</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center" style="width: 180px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var f in Model.Fields)
+                            {
+                                <tr data-id="@f.Id" class="sortable-row">
+                                    <td class="text-center text-muted cursor-grab">
+                                        <i class="fas fa-grip-vertical me-2"></i> @f.DisplayOrder
+                                    </td>
+                                    <td>@f.DisplayLabel</td>
+                                    <td>@f.FieldType</td>
+
+                                    <!-- Status -->
+                                    <td class="text-center">
+                                        <form method="post"
+                                            asp-page-handler="UpdateStatus"
+                                            class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@f.Id" />
+                                            <input type="hidden" name="actionType" value="toggle" />
+                                            <button type="submit"
+                                                class="btn btn-sm @(f.IsEnabled ? "btn-warning text-white" : "btn-secondary")"
+                                                style="font-size: 0.8rem; padding: 0.25rem 0.5rem;"
+                                                title="Toggle field status"
+                                                onclick="return confirm('@(f.IsEnabled ? "Disable this field?" : "Enable this field?")');">
+                                                <i class="fas @(f.IsEnabled ? "fa-toggle-on" : "fa-toggle-off")"></i>
+                                                @(f.IsEnabled ? "Disable" : "Enable")
+                                            </button>
+                                        </form>
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="text-center">
+                                        <a asp-page="DynamicFieldUpsert"
+                                            asp-route-id="@f.Id"
+                                            asp-route-returnUrl="@Url.Page("/Admin/Fees/ManageDynamicFields")"
+                                            class="btn btn-sm btn-success me-1"
+                                            style="font-size: 0.8rem; padding: 0.25rem 0.5rem;"
+                                            title="Edit this field">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+
+                                        <form method="post" asp-page-handler="UpdateStatus" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@f.Id" />
+                                            <input type="hidden" name="actionType" value="delete" />
+                                            <button type="submit"
+                                                class="btn btn-sm btn-danger"
+                                                style="font-size: 0.8rem; padding: 0.25rem 0.5rem;"
+                                                title="Delete this field"
+                                                onclick="return confirm('Delete this field?');">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Separate reorder form -->
+                <form method="post" asp-page-handler="Reorder" id="reorderForm" class="text-end mt-2">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="orderedIds" id="orderedIds" />
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Save Order
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
+
+    <div class="d-flex justify-content-start align-items-center mt-4">
+        <a asp-page="/Client/Reservations/Summary"
+            asp-route-preview="true"
+            class="btn btn-outline-primary">
+            <i class="fas fa-eye me-1"></i> Preview Summary Page
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script>
+        const tbody = document.querySelector('#sortableTable tbody');
+        new Sortable(tbody, {
+            animation: 150,
+            handle: '.cursor-grab',
+            chosenClass: 'sortable-chosen',
+            ghostClass: 'sortable-ghost',
+            onEnd() {
+                const ids = Array.from(tbody.querySelectorAll('tr')).map(r => r.dataset.id);
+                document.getElementById('orderedIds').value = ids.join(',');
+            }
+        });
+
+        document.getElementById('reorderForm').addEventListener('submit', () => {
+            const ids = Array.from(tbody.querySelectorAll('tr')).map(r => r.dataset.id);
+            document.getElementById('orderedIds').value = ids.join(',');
+        });
+    </script>
+
+    <style>
+        .cursor-grab {
+            cursor: grab;
+        }
+
+        .cursor-grab:active {
+            cursor: grabbing;
+        }
+
+        .sortable-row {
+            transition: background-color 0.2s ease;
+        }
+
+        .sortable-chosen {
+            background-color: #f0f8ff !important;
+        }
+
+        .sortable-ghost {
+            opacity: 0.6;
+            background-color: #e9ecef !important;
+        }
+    </style>
+    <script>
+        $(document).ready(function () {
+            $('#sortableTable').DataTable({
+                "paging": true,
+                "ordering": true,
+                "info": true,
+                "searching": false,
+                "responsive": true,
+                "autoWidth": false,
+                "columns": [
+                    { "width": "10%" },
+                    { "width": "35%" },
+                    { "width": "20%" },
+                    { "width": "15%" },
+                    { "width": "20%" }
+                ]
+            });
+        });
+    </script>
+}

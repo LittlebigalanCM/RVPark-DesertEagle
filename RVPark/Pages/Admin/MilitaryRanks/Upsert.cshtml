@@ -1,0 +1,53 @@
+﻿@page
+@model RVPark.Pages.Admin.MilitaryRanks.UpsertModel
+@{
+}
+<form method="post" asp-action="Upsert" enctype="multipart/form-data">
+	<div class="container">
+		<div class="row px-2 mx-2 backgroundWhite border">
+			@* All for Model validation and HTML validation *@
+			<div asp-validation-summary="All" class="text-danger"></div>
+
+			<div class="col-8 pt-3">
+				<div class="form-group row pt-3">
+					<div class="col-3">
+						<label asp-for="MilitaryRank.Rank">Rank Name</label>
+					</div>
+					<div class="col-9">
+						<input id="militaryRankName" class="form-control" asp-for="MilitaryRank.Rank" value="@Model.MilitaryRank.Rank" />
+						<span class="text-danger" asp-validation-for="MilitaryRank.Rank"></span>
+					</div>
+				<div/>
+				<div>
+					@{
+						int rankId = 0;
+					}
+
+					@try
+					{
+						rankId = int.Parse(Request.Query["rankId"]);
+					}
+					catch
+					{
+						rankId = 0;
+					}
+
+					<input asp-for="MilitaryRank.Id" type="hidden" value="@rankId" />
+
+
+					@if (rankId == 0)
+					{
+						<button class="btn btn-primary" type="submit"> Create </button>
+
+					}
+					else
+					{
+						<button class="btn btn-primary" type="submit"> Update </button>
+
+					}
+					<a class="btn btn-secondary" asp-page="./Index">Back to List</a>
+				</div>
+			</div>
+		</div>
+	</div>
+</form>

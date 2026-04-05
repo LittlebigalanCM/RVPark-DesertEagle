@@ -1,0 +1,180 @@
+﻿@page
+@model RVPark.Pages.Admin.AdminPanel.IndexModel
+@{
+	ViewData["Title"] = "Admin Panel";
+}
+
+<style>
+	.admin-card {
+		transition: all 0.3s ease;
+		border: none;
+		border-radius: 12px;
+		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+		text-decoration: none;
+		color: inherit;
+	}
+
+		.admin-card:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+			text-decoration: none;
+			color: inherit;
+		}
+
+	.admin-gradient-1 {
+		background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+	}
+
+	.admin-gradient-2 {
+		background: linear-gradient(135deg, #3182ce 0%, #4299e1 100%);
+	}
+
+	.admin-gradient-3 {
+		background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+	}
+
+	.admin-gradient-4 {
+		background: linear-gradient(135deg, #2c5282 0%, #3182ce 100%);
+	}
+
+	.admin-card .card-body {
+		color: white;
+		text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+	}
+
+	.admin-card i {
+		opacity: 0.9;
+	}
+
+	.admin-header {
+		background: linear-gradient(135deg, #2c5282 0%, #3182ce 100%);
+		color: white;
+		padding: 2rem 0;
+		margin: 0 15px 2rem;
+		border-radius: 12px;
+		text-align: center;
+	}
+
+		.admin-header h1 {
+			font-weight: 700;
+			margin-bottom: 0.5rem;
+		}
+</style>
+<body>
+
+	<div class="container h-100">
+		<div class="admin-header">
+			<h1><i class="fas fa-cogs me-3"></i>Admin Panel</h1>
+			<p class="mb-0">Manage your RV park operations</p>
+		</div>
+		<div class="row">
+			<div class="col-md-4 col-lg-3 mb-3">
+				<a class="card h-100 admin-card admin-gradient-1" asp-area="" asp-page="/Admin/Users/Index">
+					<div class="card-body text-center">
+						<i class="fas fa-users fa-3x mt-1 mb-2"></i>
+						<h5 class="card-title mb-0">Users</h5>
+					</div>
+				</a>
+			</div>
+
+			<div class="col-md-4 col-lg-3 mb-3">
+				<a class="card h-100 admin-card admin-gradient-2" asp-area="" asp-page="/Admin/Roles/Index">
+					<div class="card-body text-center">
+						<i class="fas fa-user-shield fa-3x mt-1 mb-2"></i>
+						<h5 class="card-title mb-0">Roles</h5>
+					</div>
+				</a>
+			</div>
+
+			<div class="col-md-4 col-lg-3 mb-3">
+				<a class="card h-100 admin-card admin-gradient-3" asp-area="" asp-page="/Admin/Transactions/Index">
+					<div class="card-body text-center">
+						<i class="fas fa-credit-card fa-3x mt-1 mb-2"></i>
+						<h5 class="card-title mb-0">Transactions</h5>
+					</div>
+				</a>
+			</div>
+
+			<div class="col-md-4 col-lg-3 mb-3">
+				<a class="card h-100 admin-card admin-gradient-4" asp-area="" asp-page="/Admin/Fees/Index">
+					<div class="card-body text-center">
+						<i class="fas fa-list-alt fa-3x mt-1 mb-2"></i>
+						<h5 class="card-title mb-0">Fee/Additional Fields</h5>
+					</div>
+				</a>
+			</div>
+
+			<div class="col-md-4 col-lg-3 mb-3">
+				<a class="card h-100 admin-card admin-gradient-2" asp-area="" asp-page="/Admin/Sites/Index">
+					<div class="card-body text-center">
+						<i class="fas fa-campground fa-3x mt-1 mb-2"></i>
+						<h5 class="card-title mb-0">Sites</h5>
+					</div>
+				</a>
+			</div>
+
+			<div class="col-md-4 col-lg-3 mb-3">
+				<a class="card h-100 admin-card admin-gradient-3" asp-area="" asp-page="/Admin/SiteTypes/Index">
+					<div class="card-body text-center">
+						<i class="fas fa-tags fa-3x mt-1 mb-2"></i>
+						<h5 class="card-title mb-0">Site Type</h5>
+					</div>
+				</a>
+			</div>
+
+			<div class="col-md-4 col-lg-3 mb-3">
+				<a class="card h-100 admin-card admin-gradient-4" asp-area="" asp-page="/Admin/Reservations/Index">
+					<div class="card-body text-center">
+						<i class="fas fa-calendar-check fa-3x mt-1 mb-2"></i>
+						<h5 class="card-title mb-0">Reservations</h5>
+					</div>
+				</a>
+			</div>
+
+			<div class="col-md-4 col-lg-3 mb-3">
+				<a class="card h-100 admin-card admin-gradient-1" asp-area="" asp-page="/Admin/Photos/Index" asp-route-siteId="0">
+					<div class="card-body text-center">
+						<i class="fas fa-images fa-3x mt-1 mb-2"></i>
+						<h5 class="card-title mb-0">Photo Gallery</h5>
+					</div>
+				</a>
+			</div>
+
+			<div class="col-md-4 col-lg-3 mb-3">
+				<a class="card h-100 admin-card admin-gradient-3" asp-area="" asp-page="/Admin/MilitaryStatuses/Index">
+					<div class="card-body text-center">
+						<i class="fas fa-id-badge fa-3x mt-1 mb-2"></i>
+						<h5 class="card-title mb-0">Military Statuses</h5>
+					</div>
+				</a>
+			</div>
+
+			<div class="col-md-4 col-lg-3 mb-3">
+				<a class="card h-100 admin-card admin-gradient-4" asp-area="" asp-page="/Admin/MilitaryRanks/Index">
+					<div class="card-body text-center">
+						<i class="fas fa-medal fa-3x mt-1 mb-2"></i>
+						<h5 class="card-title mb-0">Military Ranks</h5>
+					</div>
+				</a>
+			</div>
+
+			<div class="col-md-4 col-lg-3 mb-3">
+				<a class="card h-100 admin-card admin-gradient-1" asp-area="" asp-page="/Admin/MilitaryBranches/Index">
+					<div class="card-body text-center">
+						<i class="fas fa-flag-usa fa-3x mt-1 mb-2"></i>
+						<h5 class="card-title mb-0">Military Branches</h5>
+					</div>
+				</a>
+			</div>
+
+			<div class="col-md-4 col-lg-3 mb-3">
+				<a class="card h-100 admin-card admin-gradient-2" asp-area="" asp-page="/Admin/Reports/Index">
+					<div class="card-body text-center">
+						<i class="fas fa-chart-line fa-3x mt-1 mb-2"></i>
+						<h5 class="card-title mb-0">Generate Reports</h5>
+					</div>
+				</a>
+			</div>
+		</div>
+	</div>
+</body>

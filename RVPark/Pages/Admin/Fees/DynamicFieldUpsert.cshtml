@@ -1,0 +1,226 @@
+﻿@page
+@model RVPark.Pages.Admin.Fees.DynamicFieldUpsertModel
+
+@{
+    ViewData["Title"] = Model.CustomField.Id == 0
+        ? "Create Additional Information Field"
+        : "Edit Additional Information Field";
+}
+
+<div class="container py-4">
+    <h2 class="mb-4">@ViewData["Title"]</h2>
+
+    <form method="post" asp-antiforgery="true" class="needs-validation" novalidate>
+        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+        <input type="hidden" asp-for="CustomField.Id" />
+        <input type="hidden" asp-for="ReturnUrl" />
+        <input type="hidden" asp-for="CustomField.IsDeleted" />
+
+        <!-- Field Details -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="my-2"><i class="fas fa-info-circle me-2"></i> Field Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="CustomField.DisplayLabel" class="form-label">Display Label</label>
+                        <input asp-for="CustomField.DisplayLabel" class="form-control" />
+                        <span asp-validation-for="CustomField.DisplayLabel" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="CustomField.ConfirmationLabel" class="form-label">Confirmation Label</label>
+                        <input asp-for="CustomField.ConfirmationLabel" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label asp-for="CustomField.FieldType" class="form-label">Field Type</label>
+                        <select asp-for="CustomField.FieldType" class="form-select"
+                                asp-items="Html.GetEnumSelectList<ApplicationCore.Enums.DynamicFieldType>()"
+                                id="fieldTypeSelect"></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="CustomField.DisplayOrder" class="form-label">Display Order</label>
+                        <input asp-for="CustomField.DisplayOrder" class="form-control" type="number" />
+                    </div>
+                    <div class="col-md-4 d-flex align-items-center">
+                        <div class="form-check mt-3">
+                            <input asp-for="CustomField.IsEnabled" class="form-check-input" />
+                            <label asp-for="CustomField.IsEnabled" class="form-check-label">
+                                Field is Enabled
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Field Type–Specific Configuration -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="my-2"><i class="fas fa-cog me-2"></i> Field Configuration</h5>
+            </div>
+            <div class="card-body">
+
+                <!-- TEXT -->
+                <div id="textSettings" style="display:none;">
+                    <div class="mb-3">
+                        <label asp-for="CustomField.Note" class="form-label">Static Note (shown to users)</label>
+                        <textarea asp-for="CustomField.Note" class="form-control" rows="2"
+                                  placeholder="Example: 'Welcome to our park!'"></textarea>
+                    </div>
+                </div>
+
+                <!-- TEXT INPUT -->
+                <div id="textInputSettings" style="display:none;">
+                    <div class="mb-3">
+                        <label asp-for="CustomField.Note" class="form-label">Help Text / Placeholder</label>
+                        <textarea asp-for="CustomField.Note" class="form-control" rows="2"
+                                  placeholder="Example: 'Enter your vehicle plate number'"></textarea>
+                    </div>
+                </div>
+
+                <!-- NUMBER -->
+                <div id="numberSettings" style="display:none;">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label asp-for="CustomField.DefaultValue" class="form-label">Default</label>
+                            <input asp-for="CustomField.DefaultValue" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="CustomField.MinValue" class="form-label">Minimum</label>
+                            <input asp-for="CustomField.MinValue" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="CustomField.MaxValue" class="form-label">Maximum</label>
+                            <input asp-for="CustomField.MaxValue" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="CustomField.Note" class="form-label">Help Note</label>
+                        <textarea asp-for="CustomField.Note" class="form-control" rows="2"
+                                  placeholder="Explain limits or guidance for this number field."></textarea>
+                    </div>
+                </div>
+
+                <!-- DROPDOWN -->
+                <div id="dropdownSettings" style="display:none;">
+                    <div class="mb-3">
+                        <label asp-for="CustomField.OptionsJson" class="form-label">Dropdown Options</label>
+                        <textarea asp-for="CustomField.OptionsJson" class="form-control" rows="5"
+                                  placeholder="Enter one option per line"></textarea>
+                        <div class="form-text">Each line becomes a selectable option.</div>
+                    </div>
+                </div>
+
+                <!-- CHECKBOX -->
+                <div id="checkboxSettings" style="display:none;">
+                    <div class="mb-3">
+                        <label asp-for="CustomField.Note" class="form-label">Checkbox Label Text</label>
+                        <input asp-for="CustomField.Note" class="form-control"
+                               placeholder="Example: 'I have read and accept the policy'" />
+                    </div>
+                </div>
+
+                <!-- AGREEMENT -->
+                <div id="agreementSettings" style="display:none;">
+                    <div class="mb-3">
+                        <label asp-for="CustomField.Note" class="form-label">Agreement Text</label>
+                        <textarea asp-for="CustomField.Note" class="form-control" rows="6"
+                                  placeholder="Paste or type the agreement text shown in the scrollable panel."></textarea>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input asp-for="CustomField.ShowAgreeButtons" class="form-check-input" id="toggleAgreeButtons" />
+                        <label asp-for="CustomField.ShowAgreeButtons" class="form-check-label">
+                            Require user to Agree or Disagree
+                        </label>
+                    </div>
+
+                    <div id="agreeOptions" style="display:none;">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="CustomField.NoteAgreeText" class="form-label">Agree Button Text</label>
+                                <input asp-for="CustomField.NoteAgreeText" class="form-control" placeholder="I Agree" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="CustomField.NoteDisagreeText" class="form-label">Disagree Button Text</label>
+                                <input asp-for="CustomField.NoteDisagreeText" class="form-control" placeholder="I Do Not Agree" />
+                            </div>
+                        </div>
+
+                        <div class="form-check">
+                            <input asp-for="CustomField.DisablePayOnDisagree" class="form-check-input" />
+                            <label asp-for="CustomField.DisablePayOnDisagree" class="form-check-label">
+                                Disable “Pay” button if Disagree is selected
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex justify-content-start">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Save
+            </button>
+            <a href="@(Model.ReturnUrl ?? Url.Page("./ManageDynamicFields"))"
+               class="btn btn-secondary ms-2">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function toggleAgreeOptions() {
+            const toggle = document.getElementById("toggleAgreeButtons");
+            const agreeOptions = document.getElementById("agreeOptions");
+            if (agreeOptions) agreeOptions.style.display = toggle?.checked ? "block" : "none";
+        }
+
+        function showFieldConfig() {
+            const typeSelect = document.getElementById("fieldTypeSelect");
+            if (!typeSelect) return;
+
+            const selected = typeSelect.options[typeSelect.selectedIndex].text.toLowerCase();
+            const sections = [
+                "textSettings", "textInputSettings", "numberSettings",
+                "dropdownSettings", "checkboxSettings", "agreementSettings"
+            ];
+
+            sections.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = "none";
+            });
+
+            if (selected.includes("textinput"))
+                document.getElementById("textInputSettings").style.display = "block";
+            else if (selected.includes("number"))
+                document.getElementById("numberSettings").style.display = "block";
+            else if (selected.includes("dropdown"))
+                document.getElementById("dropdownSettings").style.display = "block";
+            else if (selected.includes("checkbox"))
+                document.getElementById("checkboxSettings").style.display = "block";
+            else if (selected.includes("agreement"))
+                document.getElementById("agreementSettings").style.display = "block";
+            else
+                document.getElementById("textSettings").style.display = "block";
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            showFieldConfig();
+            toggleAgreeOptions();
+
+            document.getElementById("fieldTypeSelect")?.addEventListener("change", showFieldConfig);
+            document.getElementById("toggleAgreeButtons")?.addEventListener("change", toggleAgreeOptions);
+        });
+    </script>
+}

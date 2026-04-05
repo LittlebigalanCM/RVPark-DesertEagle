@@ -1,0 +1,44 @@
+﻿@page "{SiteId?}"
+@model RVPark.Pages.Admin.Sites.UpsertModel
+@{
+    ViewData["Title"] = Model.Site.SiteId == 0 ? "Create Site" : "Edit Site";
+}
+
+<h2 class="text-primary">@ViewData["Title"]</h2>
+
+<form method="post">
+    <input type="hidden" asp-for="Site.SiteId" />
+
+    <div class="form-group mb-3">
+        <label asp-for="Site.Name" class="form-label"></label>
+        <input asp-for="Site.Name" class="form-control" />
+        <span asp-validation-for="Site.Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Site.SiteTypeId" class="form-label"></label>
+        <select asp-for="Site.SiteTypeId" asp-items="Model.SiteTypeList" class="form-select"></select>
+        <span asp-validation-for="Site.SiteTypeId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Site.Description" class="form-label"></label>
+        <textarea asp-for="Site.Description" class="form-control" rows="4"></textarea>
+        <span asp-validation-for="Site.Description" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Site.TrailerMaxSize" class="form-label"></label>
+        <input asp-for="Site.TrailerMaxSize" class="form-control" type="number" />
+        <span asp-validation-for="Site.TrailerMaxSize" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-success">
+        @(Model.Site.SiteId == 0 ? "Create" : "Update")
+    </button>
+    <a asp-page="./Index" class="btn btn-secondary">Back to List</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,113 @@
+﻿@page
+@model RVPark.Pages.Admin.Sites.DetailsModel
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<div class="col-12 px-3" style="border-bottom:1px solid #325d88">
+    <h2 class="text-primary">Site #@Model.Site.Name</h2>
+</div>
+
+<div class="pt-3">
+    <dl class="card mx-auto">
+        <div class="row">
+			<dt class="col-sm-2">
+				@Html.DisplayNameFor(model => model.Site.Name)
+			</dt>
+			<dd class="col-sm-10">
+				@Html.DisplayFor(model => model.Site.Name)
+			</dd>
+		</div>
+        <div class="row">
+			<dt class="col-sm-2">
+				@Html.DisplayNameFor(model => model.Site.Description)
+			</dt>
+			<dd class="col-sm-10">
+				@Html.DisplayFor(model => model.Site.Description)
+			</dd>
+		</div>
+        <div class="row">
+			<dt class="col-sm-2">
+				@Html.DisplayNameFor(model => model.Site.TrailerMaxSize)
+			</dt>
+			<dd class="col-sm-10">
+				@Html.DisplayFor(model => model.Site.TrailerMaxSize)
+			</dd>
+		</div>
+        <div class="row">
+			<dt class="col-sm-2">
+				@Html.DisplayNameFor(model => model.Site.SiteType)
+			</dt>
+			<dd class="col-sm-10">
+				@Html.DisplayFor(model => model.Site.SiteType.Name)
+			</dd>
+        </div>
+		<div class="row">
+			<dt class="col-sm-2">
+				@Html.DisplayNameFor(model => model.Price.PricePerDay)
+			</dt>
+			<dd class="col-sm-10">
+				@Html.DisplayFor(model => model.Price.PricePerDay)
+			</dd>
+		</div>
+    </dl>
+</div>
+
+<!-- Carousel Section -->
+<div class="container my-5">
+	<div class="row g-3 fade-in">
+		<div class="col-1 prev-button-div">
+			<button class="my-prev-button" type="button" data-bs-target="#rv-carousel" data-bs-slide="prev" aria-label="Previous image">
+				<span class="carousel-control-prev-icon" aria-hidden="true"></span>
+				<span class="visually-hidden">Previous</span>
+			</button>
+		</div>
+
+		<div id="rv-carousel" class="carousel slide col-10" data-bs-ride="carousel">
+			<div class="carousel-inner">
+                @if (!Model.PhotoList.Any()) {
+                    <div class="carousel-item active">
+                        <img src="~/images/99fsslogo.png" class="d-block w-100" alt="Desert Eagle RV Park - Community">
+                        <div class="carousel-caption d-none d-md-block">
+                            <div class="glass-card p-3">
+                                <h5>No images for site</h5>
+                                <p>Images added to this site will appear here.</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else {
+                    foreach (var photo in Model.PhotoList) {
+
+                        if (photo.Id == Model.Photo.Id) {
+                            <div class="carousel-item active">
+					            <img src="@photo.Name" class="d-block w-100" alt="Desert Eagle RV Park - Site">
+				            </div>
+                        }
+                        else {
+                            <div class="carousel-item">
+                                <img src="@photo.Name" class="d-block w-100" alt="Desert Eagle RV Park - Site">
+                            </div>
+                        }
+                    }
+                }
+			</div>
+		</div>
+		<div class="col-1 next-button-div">
+			<button class="my-next-button" type="button" data-bs-target="#rv-carousel" data-bs-slide="next" aria-label="Next image">
+				<span class="carousel-control-next-icon" aria-hidden="true"></span>
+				<span class="visually-hidden">Next</span>
+			</button>
+		</div>
+	</div>
+</div>
+
+<!-- Number of photos -->
+<a asp-page="/Admin/Photos/Index" asp-route-siteId="@Model.Site.SiteId" class="btn btn-primary 
+-end">Number of photos: <span class="badge">@Model.PhotoList.Count()</span></a>
+
+<div>
+    <a class="btn btn-primary" asp-page="./Edit" asp-route-siteId="@Model.Site.SiteId">Edit</a> 
+    <a class="btn btn-secondary" asp-page="./Index">Back to Site List</a>
+</div>

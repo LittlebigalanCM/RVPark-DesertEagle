@@ -1,0 +1,100 @@
+﻿@page "{reservationId:int?}"
+@using Infrastructure.Utilities
+@model RVPark.Pages.Client.Reservations.ConfirmationModel
+@{
+    ViewData["Title"] = "Reservation Confirmation";
+}
+
+<div class="container">
+    <div class="row px-2 mx-2 backgroundWhite border">
+        <div class="col-12 px-3" style="border-bottom:1px solid #325d88">
+            <h2 class="text-primary">Reservation Confirmation</h2>
+        </div>
+
+        <div class="col-12 pt-4 pb-4">
+            <div class="text-center mb-5">
+                <i class="fas fa-check-circle text-success" style="font-size: 5rem;"></i>
+                <h3 class="text-success mt-3">Thank You For Your Reservation!</h3>
+                <p class="lead">
+                    Your reservation has been successfully processed and confirmed.
+                </p>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8 offset-md-2">
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="my-2">Reservation Details</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-5 font-weight-bold">Reservation Number:</div>
+                                <div class="col-md-7">@Model.Reservation.ReservationId</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-5 font-weight-bold">Site:</div>
+                                <div class="col-md-7">@Model.SiteName (@Model.SiteTypeName)</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-5 font-weight-bold">Check-in Date:</div>
+                                <div class="col-md-7">@Model.Reservation.StartDate.ToShortDateString()</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-5 font-weight-bold">Check-out Date:</div>
+                                <div class="col-md-7">@Model.Reservation.EndDate.ToShortDateString()</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-5 font-weight-bold">Total Amount Paid:</div>
+                                <div class="col-md-7">$@Model.TotalAmount.ToString("F2")</div>
+                            </div>
+
+                            @if (Model.TransactionFieldsWithLabels?.Any() == true)
+                            {
+                                @foreach (var f in Model.TransactionFieldsWithLabels)
+                                {
+                                    <div class="row mb-3">
+                                        <div class="col-md-5">@f.Label:</div>
+                                        <div class="col-md-7">@f.Value</div>
+                                    </div>
+                                }
+                            }
+
+                            @if (!string.IsNullOrEmpty(Model.SpecialRequests))
+                            {
+                                <div class="row mb-3">
+                                    <div class="col-md-5 font-weight-bold">Special Requests:</div>
+                                    <div class="col-md-7">@Html.Raw(Model.SpecialRequests.Replace("\n", "<br />"))</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        @if (User.IsInRole(SD.AdminRole))
+                        {
+                            <a asp-page="../../Admin/Reservations/Index" class="btn btn-primary btn-lg mb-3">
+                                View All Reservations
+                            </a>
+                        }
+                        else
+                        {
+                            <a asp-page="./Index" class="btn btn-primary btn-lg mb-3">
+                                View All Reservations
+                            </a>
+                        }
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <div class="text-center mt-4">
+                            <a asp-page="/Client/Reservations/Receipt"
+                               asp-route-reservationId="@Model.Reservation.ReservationId"
+                               class="btn btn-primary btn-lg mb-3">
+                                View Receipt
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

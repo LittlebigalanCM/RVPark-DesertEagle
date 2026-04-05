@@ -1,0 +1,119 @@
+﻿@page
+@using Infrastructure.Utilities
+@model RVPark.Pages.Admin.Transactions.DetailsModel
+@{
+    ViewData["Title"] = "Transaction Details";
+}
+
+<body>
+    <h1 class="text-secondary">Transaction Details</h1>
+
+    <div>
+        @if (@Model.Transaction != null)
+        {
+            @*Pulled from the Receipt page and edited*@
+
+            <div class="container py-4">
+                <div class="row justify-content-center">
+                    <div class="col-lg-10">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                                <h4 class="my-2">Transaction Receipt</h4>
+                                @*<a asp-page-handler="DownloadReceipt"
+                                   asp-route-reservationId="@Model.Reservation.ReservationId"
+                                   asp-route-transactionId="@(Model.Transaction.TransactionId)"
+                                   class="btn btn-outline-light">
+                                    <i class="fas fa-file-pdf me-1"></i> Download PDF
+                                </a>*@
+                            </div>
+
+                            <div class="card-body">
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <h5 class="fw-semibold text-secondary">Reservation Details</h5>
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item"><strong>Reservation ID:</strong> @Model.Reservation.ReservationId</li>
+                                            <li class="list-group-item"><strong>Site:</strong> @Model.Reservation.Site.Name</li>
+                                            <li class="list-group-item"><strong>Status:</strong> @Model.Reservation.ReservationStatus</li>
+                                            <li class="list-group-item"><strong>Guest:</strong> @Model.Reservation.UserAccount?.FullName</li>
+                                            <li class="list-group-item"><strong>Start Date:</strong> @Model.Reservation.StartDate.ToShortDateString()</li>
+                                            <li class="list-group-item"><strong>End Date:</strong> @Model.Reservation.EndDate.ToShortDateString()</li>
+                                            <li class="list-group-item"><!-- <strong>Trailer Length:</strong> @(Model.Reservation.TrailerLength ?? 0) ft --></li>
+
+                                        </ul>
+                                    </div>
+
+                                    @*       <div class="col-md-6">
+                                        <h5 class="fw-semibold text-secondary">Site Info</h5>
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item"><strong>Site Name:</strong> @Model.Reservation.Site?.Name</li>
+                                            <li class="list-group-item"><strong>Site Type:</strong> @Model.Reservation.Site?.SiteType?.Name</li>
+                                            <li class="list-group-item"><strong>Max Trailer Size:</strong> @(Model.Reservation.Site?.TrailerMaxSize ?? 0) ft</li>
+                                            <li class="list-group-item"><strong>Base Price (per day):</strong> @pricePerDay.ToString("C")</li>
+                                        </ul>
+                                    </div>
+                                </div> *@
+                                    <div class="row mb-4">
+                                        <div class="col-md-6">
+                                            <h5 class="fw-semibold text-secondary">Transaction Details</h5>
+                                            <ul class="list-group list-group-flush">
+                                                <li class="list-group-item"><strong>Transaction ID:</strong> @Model.Transaction.TransactionId</li>
+                                                <li class="list-group-item"><strong>Transaction Date:</strong> @Model.Transaction.TransactionDateTime.ToShortDateString()</li>
+                                                <li class="list-group-item"><strong>Description:</strong> @Model.Transaction.Description</li>
+                                                <li class="list-group-item"><strong>Amount:</strong> $@Model.Transaction.Amount</li>
+                                                <li class="list-group-item"><strong>Paid?:</strong> @(Model.Transaction.IsPaid ? "Yes" : "No")</li>
+                                                <li class="list-group-item"><strong>Payment Method:</strong> @Model.Transaction.PaymentMethod</li>
+                                                @if (Model.Transaction.TransactionApprovalId > 0) //Walk in credit card payment
+                                                {
+                                                    <li class="list-group-item"><strong>Transaction Approval ID:</strong> @Model.Transaction.TransactionApprovalId</li>
+                                                }
+                                                else if (Model.Transaction.PaymentMethod.Equals(SD.CheckPayment)) //Check payment
+                                                {
+                                                    <li class="list-group-item"><strong>Check Number:</strong> @Model.Check.CheckNumber</li>
+                                                    <li class="list-group-item"><strong>Date:</strong> @Model.Check.CheckDateTime.ToShortDateString()</li>
+                                                    <li class="list-group-item"><strong>Amount:</strong> $@Model.Check.Amount</li>
+                                                }
+                                                <li class="list-group-item"><strong>Previously Refunded:</strong> @(Model.Transaction.PreviouslyRefunded ? "Yes" : "No")</li>
+
+                                            </ul>
+                                        </div>
+
+                                    </div>
+
+                                    @*   <div class="mb-4">
+                                    <h5 class="fw-semibold text-secondary">Totals</h5>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <p><strong>Total Paid:</strong> @Model.Transaction.TotalPaid.ToString("C")</p>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <p><strong>Total Refunded:</strong> @Model.TotalRefunded.ToString("C")</p>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <p><strong>Balance Due:</strong> <span class="text-danger">@Model.BalanceDue.ToString("C")</span></p>
+                                        </div>
+                                    </div>
+                                </div> *@
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        }
+        else
+        {
+            <h3>Transaction not found.</h3>
+        }
+       
+    
+    <div>
+        <a class="btn btn-primary" href="/Admin/Transactions?reservationId=@Model.Transaction.ReservationId">All Transactions for Reservation #@Model.Transaction.ReservationId</a>
+        <a class="btn btn-secondary" asp-page="./Index">All Transactions</a>
+    </div>
+
+    </div>
+
+</body>

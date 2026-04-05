@@ -1,0 +1,81 @@
+﻿@page
+@model RVPark.Pages.Admin.Users.UpdateModel
+@{
+}
+<div class="container">
+    <form class="form" method="post">
+        <div class="row">
+            <input type="hidden" value="@Model.AppUser.Id" asp-for="@Model.AppUser.Id" />
+            <input type="hidden" value="@Model.OldRoles.ToList()" asp-for="@Model.OldRoles" />
+            <div class="form-group col-md-6">
+                <label asp-for="@Model.AppUser.FirstName">First Name</label>
+                <input class="form-control" asp-for="@Model.AppUser.FirstName" value="@Model.AppUser.FirstName" />
+            </div>
+            <div class="form-group col-md-6">
+                <label asp-for="@Model.AppUser.LastName">Last Name</label>
+                <input class="form-control" asp-for="@Model.AppUser.LastName" value="@Model.AppUser.LastName" />
+            </div>
+        </div>
+        <div class="row">
+            <div class="form-group col-md-6">
+                <label asp-for="@Model.AppUser.Email">Email</label>
+                <input class="form-control" asp-for="@Model.AppUser.Email" value="@Model.AppUser.Email" />
+            </div>
+            <div class="form-group col-md-6">
+                <label asp-for="@Model.AppUser.PhoneNumber">Phone Number</label>
+                <input class="form-control" asp-for="@Model.AppUser.PhoneNumber" value="@Model.AppUser.PhoneNumber" />
+            </div>
+            @* <div class="form-group col-md-6">
+                <label asp-for="@Model.AppUser.PasswordHash">Password</label>
+                <input class="form-control" asp-for="@Model.AppUser.PasswordHash" value="@Model.AppUser.PasswordHash" type="password" />
+            </div> *@
+        </div>
+
+        <div class="row">
+            <div class="form-group col-md-6">
+                <label asp-for="@Model.AppUser.MilitaryBranch">Military Branch</label>
+                <div class="col-9">
+                    @Html.DropDownListFor(m => m.SelectedBranchId, Model.MilitaryBranchesList, " - Please select a Military Branch - ", new { @class = "form-control selectpicker", @id = "ddlBranches", data_live_search = "true", selected=Model.AppUser.BranchId })
+                    <span class="text-danger" asp-validation-for="AppUser.MilitaryBranch"></span>
+                </div>
+            </div>
+            <div class="form-group col-md-6">
+                <label asp-for="@Model.AppUser.MilitaryRank">Military Rank</label>
+                <div class="col-9">
+                    @Html.DropDownListFor(m => m.SelectedRankId, Model.MilitaryRanksList, " - Please select a Military Rank - ", new { @class = "form-control selectpicker", @id = "ddlRanks", data_live_search = "true", selected=Model.AppUser.MilitaryRank })
+                    <span class="text-danger" asp-validation-for="AppUser.MilitaryRank"></span>
+                </div>
+            </div>
+            <div class="form-group col-md-6">
+                <label asp-for="@Model.AppUser.MilitaryStatus">Military Status</label>
+                <div class="col-9">
+                    @Html.DropDownListFor(m => m.SelectedStatusId, Model.MilitaryStatusesList, " - Please select a Military Status - ", new { @class = "form-control selectpicker", @id = "ddlBranches", data_live_search = "true", @selected=Model.AppUser.StatusId })
+                    <span class="text-danger" asp-validation-for="AppUser.MilitaryStatus"></span>
+                </div>
+            </div>
+        </div>
+
+       
+        <div class="row">
+            <div class="form-group col-md-6">
+                <label>User Role</label>
+                <div class="col-9">
+                    @Html.DropDownListFor(
+                    m => m.SelectedUserRole,
+                                        Model.UserRoleList,
+                                        " - Please select a User Role - ",
+                                        new { @class = "form-control selectpicker", @id = "ddlUserRole", data_live_search = "true" }
+                                        )
+                    <span class="text-danger" asp-validation-for="SelectedUserRole"></span>
+                </div>
+            </div>
+        </div>
+        <div class="form-group mt-2">
+            <input type="submit" value="Update" class="btn btn-primary" />
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='@Url.Page("./Index")'">Back to List</button>
+        </div>
+    </form>
+</div>
+
+
+

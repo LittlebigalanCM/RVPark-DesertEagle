@@ -1,0 +1,57 @@
+﻿@page
+@model RVPark.Pages.Admin.Fees.IndexModel
+
+<div class="d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="text-secondary mb-0">Fees</h1>
+        <p class="text-muted small mb-0">
+            Create and manage custom or automatic fees applied to reservations.
+        </p>
+    </div>
+    <div class="d-flex flex-column align-items-end gap-2">
+        <a href="/Admin/Fees/Upsert?returnUrl=/Admin/Fees/Index" class="btn btn-success">
+            <i class="fas fa-plus"></i> Create Fee
+        </a>
+        <a href="/Admin/Fees/ManageDynamicFields" class="btn btn-outline-primary">
+            <i class="fas fa-sliders-h"></i> Additional Fields
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="my-2"><i class="fa-solid fa-money-bill"></i> Fee List</h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-4 col-md-3">
+                <input type="text" id="searchFeeInput" class="form-control"
+                       placeholder="Search by Fee Name or Trigger Type">
+            </div>
+            <div class="col d-flex align-items-center gap-2 mb-3 flex-wrap">
+                <button class="btn btn-primary" type="button" id="searchFeeButton">
+                    <i class="fas fa-search"></i> Search
+                </button>
+                <button id="resetFeeSearch" class="btn btn-danger">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+            </div>
+        </div>
+
+        <table id="Fee_table" class="table table-striped table-bordered" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Fee Name</th>
+                    <th>Amount</th>
+                    <th>Calculation Type</th>
+                    <th>Trigger Type</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/fee.js"></script>
+}

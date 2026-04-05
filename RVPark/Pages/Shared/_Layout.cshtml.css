@@ -1,0 +1,98 @@
+﻿/* Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
+for details on configuring this project to bundle and minify static web assets. */
+
+a.navbar-brand {
+  white-space: normal;
+  text-align: center;
+  word-break: break-all;
+}
+
+a {
+  color: #0077cc;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: #1b6ec2;
+  border-color: #1861ac;
+}
+
+.nav-pills .nav-link.active, .nav-pills .show > .nav-link {
+  color: #fff;
+  background-color: #1b6ec2;
+  border-color: #1861ac;
+}
+
+.border-top {
+  border-top: 1px solid #e5e5e5;
+}
+.border-bottom {
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.box-shadow {
+  box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
+}
+
+button.accept-policy {
+  font-size: 1rem;
+  line-height: inherit;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  line-height: 60px;
+}
+#svg-map, #svg-map svg {
+    cursor: grab !important;
+}
+
+    #svg-map .site {
+        cursor: pointer !important;
+    }
+
+    #svg-map .unavailable {
+        cursor: grab !important;
+    }
+
+    #svg-map .cls-73 {
+        cursor: grab !important;
+        pointer-events: none;
+    }
+
+    #svg-map .cls-22 {
+        cursor: grab !important;
+        pointer-events: none;
+    }
+
+    #svg-map .cls-38 {
+        cursor: grab !important;
+        pointer-events: none;
+    }
+
+    #svg-map text {
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        pointer-events: none;
+    }
+
+@media (min-width: 992px) {
+    #adminDropdownWrapper:hover .dropdown-menu {
+        display: block;
+        margin-top: 0;
+    }
+
+    #adminDropdownWrapper .dropdown-menu {
+        margin-top: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    #mini-map-container {
+        display: none !important;
+    }
+}

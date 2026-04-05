@@ -1,0 +1,398 @@
+﻿@page
+@model RVPark.Pages.Admin.Fees.UpsertModel
+@using ApplicationCore.Enums
+
+@{
+    ViewData["Title"] = Model.FeeObject.FeeId == 0 ? "Create Fee" : "Edit Fee";
+}
+
+<form method="post" class="container py-4">
+    <h2 class="mb-4">@ViewData["Title"]</h2>
+
+    <input type="hidden" asp-for="FeeObject.FeeId" />
+    <input type="hidden" asp-for="ReturnUrl" />
+
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="my-2"><i class="fas fa-dollar-sign me-2"></i> Fee Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label asp-for="FeeObject.Name" class="form-label"></label>
+                    <input asp-for="FeeObject.Name" class="form-control" />
+                    <span asp-validation-for="FeeObject.Name" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="FeeObject.DisplayLabel" class="form-label"></label>
+                    <input asp-for="FeeObject.DisplayLabel" class="form-control" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label asp-for="FeeObject.TriggerType" class="form-label">When does this fee apply?</label>
+                    <select asp-for="FeeObject.TriggerType"
+                            asp-items="Model.TriggerTypeList"
+                            class="form-select"
+                            id="triggerTypeSelect"></select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="FeeObject.CalculationType" class="form-label">How should it be calculated?</label>
+                    <select asp-for="FeeObject.CalculationType"
+                            asp-items="Model.CalculationTypeList"
+                            class="form-select"
+                            id="calcTypeSelect"></select>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6" id="staticAmountGroup">
+                    <label asp-for="FeeObject.StaticAmount" class="form-label">Amount ($)</label>
+                    <input asp-for="FeeObject.StaticAmount" class="form-control" step="0.01" />
+                    <span asp-validation-for="FeeObject.StaticAmount" class="text-danger"></span>
+                </div>
+                <div class="col-md-6" id="percentageGroup" style="display:none;">
+                    <label asp-for="FeeObject.Percentage" class="form-label">Percentage (%)</label>
+                    <input asp-for="FeeObject.Percentage" class="form-control" step="0.1" />
+                    <span asp-validation-for="FeeObject.Percentage" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-check mb-3">
+                <input asp-for="FeeObject.IsEnabled" class="form-check-input" />
+                <label asp-for="FeeObject.IsEnabled" class="form-check-label">Enable this fee</label>
+            </div>
+        </div>
+    </div>
+
+    <div id="autoRuleSection" style="display:none;">
+        <div class="card mb-4 border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="my-2"><i class="fas fa-magic me-2"></i> Automatic Fee Rule</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    Define when this automatic fee should apply. Select a field to configure the rule.
+                </p>
+
+                <!-- Field Selection -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Trigger Field</label>
+                        <select id="ruleField" class="form-select">
+                            <option value="" data-type="">– select field –</option>
+                            @if (Model.CustomFields?.Any() == true)
+                            {
+                                @foreach (var fld in Model.CustomFields)
+                                {
+                                    var optionsData = "";
+                                    if (fld.FieldType == DynamicFieldType.Dropdown && !string.IsNullOrEmpty(fld.OptionsJson))
+                                    {
+                                        // Handle both JSON format and comma-separated format
+                                        try
+                                        {
+                                            if (fld.OptionsJson.TrimStart().StartsWith("{"))
+                                            {
+                                                var parsed = System.Text.Json.JsonDocument.Parse(fld.OptionsJson);
+                                                if (parsed.RootElement.TryGetProperty("Options", out var opts))
+                                                {
+                                                    var options = opts.EnumerateArray().Select(o => o.GetString()).ToList();
+                                                    optionsData = string.Join(",", options);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                // Comma-separated format
+                                                optionsData = fld.OptionsJson;
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            optionsData = fld.OptionsJson;
+                                        }
+                                    }
+                                    <option value="@fld.FieldName"
+                                            data-type="@fld.FieldType.ToString()"
+                                            data-options="@optionsData">
+                                        @fld.DisplayLabel (@fld.FieldType.ToString())
+                                    </option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Number Field Rule Builder -->
+                <div id="numberRuleBuilder" class="row mb-3" style="display:none;">
+                    <div class="col-md-4">
+                        <label class="form-label">Operator</label>
+                        <select id="numberOperator" class="form-select">
+                            <option value=">">Greater than (>)</option>
+                            <option value="<">Less than (<)</option>
+                            <option value="==">Equals (=)</option>
+                            <option value="!=">Not equals (≠)</option>
+                            <option value=">=">Greater or equal (>=)</option>
+                            <option value="<=">Less or equal (<=)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Value</label>
+                        <input type="number" id="numberValue" class="form-control" placeholder="e.g. 2" />
+                    </div>
+                </div>
+
+                <!-- Dropdown Field Rule Builder -->
+                <div id="dropdownRuleBuilder" class="row mb-3" style="display:none;">
+                    <div class="col-md-4">
+                        <label class="form-label">Condition</label>
+                        <select id="dropdownOperator" class="form-select">
+                            <option value="==">Equals</option>
+                            <option value="!=">Does not equal</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Option</label>
+                        <select id="dropdownValue" class="form-select">
+                            <option value="">– select option –</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Checkbox Field Rule Builder -->
+                <div id="checkboxRuleBuilder" class="row mb-3" style="display:none;">
+                    <div class="col-md-6">
+                        <label class="form-label">Condition</label>
+                        <select id="checkboxValue" class="form-select">
+                            <option value="true">When checked</option>
+                            <option value="false">When unchecked</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Rule Summary -->
+                <div id="ruleSummary" class="alert alert-info mb-3" style="display:none;">
+                    <strong>Rule:</strong> <span id="ruleSummaryText"></span>
+                </div>
+
+                <input type="hidden" asp-for="FeeObject.TriggerRuleJson" id="ruleJsonHidden" />
+                <button type="button" id="generateRule" class="btn btn-primary" disabled>
+                    <i class="fas fa-cogs"></i> Save Rule
+                </button>
+                <small id="ruleSavedNotice" class="text-success ms-2 d-none">✓ Rule saved</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <button type="submit" class="btn btn-success w-100">
+                @(Model.FeeObject.FeeId == 0 ? "Create Fee" : "Save Changes")
+            </button>
+        </div>
+        <div class="col-md-6">
+            <a href="@(Model.ReturnUrl ?? Url.Page("./Index"))" class="btn btn-secondary w-100">Cancel</a>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Calculation type toggle
+        document.getElementById("calcTypeSelect").addEventListener("change", function () {
+            const type = this.value;
+            document.getElementById("percentageGroup").style.display = (type === "PercentOfTotal") ? "block" : "none";
+            document.getElementById("staticAmountGroup").style.display = (type === "PercentOfTotal") ? "none" : "block";
+        });
+
+        // Trigger type toggle
+        const triggerSelect = document.getElementById("triggerTypeSelect");
+        const autoRuleSection = document.getElementById("autoRuleSection");
+
+        function toggleAutoUI() {
+            const isAuto = triggerSelect.value === "Automatic";
+            autoRuleSection.style.display = isAuto ? "block" : "none";
+        }
+
+        toggleAutoUI();
+        triggerSelect.addEventListener("change", toggleAutoUI);
+
+        // Field type handling
+        const ruleFieldSelect = document.getElementById("ruleField");
+        const numberBuilder = document.getElementById("numberRuleBuilder");
+        const dropdownBuilder = document.getElementById("dropdownRuleBuilder");
+        const checkboxBuilder = document.getElementById("checkboxRuleBuilder");
+        const generateBtn = document.getElementById("generateRule");
+        const ruleSummary = document.getElementById("ruleSummary");
+        const ruleSummaryText = document.getElementById("ruleSummaryText");
+
+        function hideAllBuilders() {
+            numberBuilder.style.display = "none";
+            dropdownBuilder.style.display = "none";
+            checkboxBuilder.style.display = "none";
+            ruleSummary.style.display = "none";
+            generateBtn.disabled = true;
+        }
+
+        function updateRuleSummary() {
+            const selectedOption = ruleFieldSelect.options[ruleFieldSelect.selectedIndex];
+            const fieldName = selectedOption.text.split(' (')[0]; // Get display name without type
+            const fieldType = selectedOption.dataset.type;
+
+            let summaryText = "";
+
+            if (fieldType === "Number") {
+                const op = document.getElementById("numberOperator").value;
+                const val = document.getElementById("numberValue").value;
+                if (val) {
+                    const opText = { ">": "greater than", "<": "less than", "==": "equals", "!=": "does not equal", ">=": "at least", "<=": "at most" };
+                    summaryText = `Apply fee when "${fieldName}" is ${opText[op] || op} ${val}`;
+                }
+            } else if (fieldType === "Dropdown") {
+                const op = document.getElementById("dropdownOperator").value;
+                const val = document.getElementById("dropdownValue").value;
+                if (val) {
+                    summaryText = `Apply fee when "${fieldName}" ${op === "==" ? "equals" : "does not equal"} "${val}"`;
+                }
+            } else if (fieldType === "Checkbox") {
+                const val = document.getElementById("checkboxValue").value;
+                summaryText = `Apply fee when "${fieldName}" is ${val === "true" ? "checked" : "unchecked"}`;
+            }
+
+            if (summaryText) {
+                ruleSummaryText.textContent = summaryText;
+                ruleSummary.style.display = "block";
+                generateBtn.disabled = false;
+            } else {
+                ruleSummary.style.display = "none";
+                generateBtn.disabled = true;
+            }
+        }
+
+        ruleFieldSelect.addEventListener("change", function () {
+            hideAllBuilders();
+
+            const selectedOption = this.options[this.selectedIndex];
+            const fieldType = selectedOption.dataset.type;
+            const options = selectedOption.dataset.options;
+
+            if (fieldType === "Number") {
+                numberBuilder.style.display = "flex";
+                updateRuleSummary();
+            } else if (fieldType === "Dropdown") {
+                // Populate dropdown options
+                const dropdownValueSelect = document.getElementById("dropdownValue");
+                dropdownValueSelect.innerHTML = '<option value="">– select option –</option>';
+
+                if (options) {
+                    const optionList = options.split(",").map(o => o.trim()).filter(o => o);
+                    optionList.forEach(opt => {
+                        const optEl = document.createElement("option");
+                        optEl.value = opt;
+                        optEl.textContent = opt;
+                        dropdownValueSelect.appendChild(optEl);
+                    });
+                }
+
+                dropdownBuilder.style.display = "flex";
+            } else if (fieldType === "Checkbox") {
+                checkboxBuilder.style.display = "flex";
+                updateRuleSummary();
+            }
+        });
+
+        // Update summary on value changes
+        document.getElementById("numberOperator").addEventListener("change", updateRuleSummary);
+        document.getElementById("numberValue").addEventListener("input", updateRuleSummary);
+        document.getElementById("dropdownOperator").addEventListener("change", updateRuleSummary);
+        document.getElementById("dropdownValue").addEventListener("change", updateRuleSummary);
+        document.getElementById("checkboxValue").addEventListener("change", updateRuleSummary);
+
+        // Generate rule JSON
+        document.getElementById("generateRule").addEventListener("click", function () {
+            const selectedOption = ruleFieldSelect.options[ruleFieldSelect.selectedIndex];
+            const field = ruleFieldSelect.value;
+            const fieldType = selectedOption.dataset.type;
+
+            if (!field) {
+                alert("Please select a field.");
+                return;
+            }
+
+            let operator = "";
+            let value = null;
+
+            if (fieldType === "Number") {
+                operator = document.getElementById("numberOperator").value;
+                value = parseFloat(document.getElementById("numberValue").value);
+                if (isNaN(value)) {
+                    alert("Please enter a valid number.");
+                    return;
+                }
+            } else if (fieldType === "Dropdown") {
+                operator = document.getElementById("dropdownOperator").value;
+                value = document.getElementById("dropdownValue").value;
+                if (!value) {
+                    alert("Please select an option.");
+                    return;
+                }
+            } else if (fieldType === "Checkbox") {
+                operator = "==";
+                value = document.getElementById("checkboxValue").value === "true";
+            }
+
+            const json = JSON.stringify({
+                Field: field,
+                FieldType: fieldType,
+                Operator: operator,
+                Value: value
+            });
+
+            document.getElementById("ruleJsonHidden").value = json;
+            document.getElementById("ruleSavedNotice").classList.remove("d-none");
+
+            // Hide notice after 3 seconds
+            setTimeout(() => {
+                document.getElementById("ruleSavedNotice").classList.add("d-none");
+            }, 3000);
+        });
+
+        // Handle existing rule data when editing
+        const existingRule = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["ExistingRule"] ?? new { }));
+        if (existingRule && existingRule.Field) {
+            // Set the field dropdown
+            const fieldSelect = document.getElementById("ruleField");
+            for (let i = 0; i < fieldSelect.options.length; i++) {
+                if (fieldSelect.options[i].value === existingRule.Field) {
+                    fieldSelect.selectedIndex = i;
+                    fieldSelect.dispatchEvent(new Event('change'));
+                    break;
+                }
+            }
+
+            // Set values based on field type
+            setTimeout(() => {
+                const fieldType = existingRule.FieldType ||
+                    fieldSelect.options[fieldSelect.selectedIndex]?.dataset?.type;
+
+                if (fieldType === "Number") {
+                    document.getElementById("numberOperator").value = existingRule.Operator || '>';
+                    document.getElementById("numberValue").value = existingRule.Value || '';
+                } else if (fieldType === "Dropdown") {
+                    document.getElementById("dropdownOperator").value = existingRule.Operator || '==';
+                    document.getElementById("dropdownValue").value = existingRule.Value || '';
+                } else if (fieldType === "Checkbox") {
+                    document.getElementById("checkboxValue").value = existingRule.Value ? "true" : "false";
+                }
+
+                updateRuleSummary();
+
+                // If there's existing JSON, mark as saved
+                if (document.getElementById("ruleJsonHidden").value) {
+                    document.getElementById("ruleSavedNotice").classList.remove("d-none");
+                }
+            }, 100);
+        }
+    </script>
+}

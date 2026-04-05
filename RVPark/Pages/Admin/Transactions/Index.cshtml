@@ -1,0 +1,143 @@
+﻿@page
+@model RVPark.Pages.Admin.Transactions.IndexModel
+@{
+    ViewData["Title"] = "View Transactions";
+}
+
+@{
+    int resId = 0;
+    try
+    {
+        resId = int.Parse(Request.Query["reservationId"]);
+    }
+    catch
+    {
+        resId = 0;
+    }
+}
+
+<div class="d-flex justify-content-between align-items-center pt-4 flex-wrap">
+    @if (resId != 0)
+    {
+        <a class="btn btn-secondary" asp-area="" asp-page="/Admin/Reservations/Index">
+            Back to Reservations
+        </a>
+
+        <h2 class="text-secondary my-2 mx-auto">View Transactions: Reservation #@resId</h2>
+
+        <div class="d-flex gap-2">
+            <a asp-page="Index" asp-route-reservationId="0" class="btn btn-secondary">
+                View All Transactions
+            </a>
+            <a asp-page="Insert" asp-route-reservationId="@resId" class="btn btn-success">
+                <i class="fas fa-plus"></i> &nbsp;Create New
+            </a>
+        </div>
+    }
+    else
+    {
+        <h1 class="text-secondary">All Current Customer Transactions</h1>
+
+        <a asp-page="Insert" asp-route-reservationId="@resId" class="btn btn-success">
+            <i class="fas fa-plus"></i> &nbsp;Create New Transaction
+        </a>
+    }
+</div>
+
+<div class="card mb-4 mt-3">
+    <div class="card-header">
+        <h5 class="my-2"><i class="fa-solid fa-money-bill-transfer"></i> Transactions</h5>
+    </div>
+
+    <div class="card-body">
+        <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+            <input type="text" id="searchInput" class="form-control w-auto" placeholder="Reservation/Transaction Id" style="min-width: 250px;">
+
+            <button class="btn btn-primary" type="button" id="searchTransactionsButton">
+                <i class="fas fa-search"></i> Search by Transaction Id
+            </button>
+
+            <button class="btn btn-primary" type="button" id="searchReservationsButton">
+                <i class="fas fa-search"></i> Search by Reservation Id
+            </button>
+
+            <button id="resetTransactionSearch" class="btn btn-danger">Reset</button>
+        </div>
+
+        
+    <!-- Filter Buttons-->
+    <!--
+        Cash transaction
+        Check transactions
+        Check transactions
+        Refunded transactions (shows original transaction that was refunded + all refund transactions)
+    -->
+    <div class="card-body">
+            <div class="d-flex gap-2 flex-wrap" id="paymentFilterGroup" role="group" aria-label="Payment Filter">
+                <input type="checkbox" class="btn-check" name="PaymentMethod" id="allCheck" value="All" checked>
+                <label class="btn btn-outline-secondary" for="allCheck">All</label>
+
+                <input type="checkbox" class="btn-check" name="PaymentMethod" id="cashCheck" value="Cash">
+                <label class="btn btn-outline-primary" for="cashCheck">Cash</label>
+
+                <input type="checkbox" class="btn-check" name="PaymentMethod" id="checkCheck" value="Check">
+                <label class="btn btn-outline-primary" for="checkCheck">Check</label>
+
+                <input type="checkbox" class="btn-check" name="PaymentMethod" id="creditCheck" value="Credit Card">
+                <label class="btn btn-outline-primary" for="creditCheck">Credit</label>
+
+                <input type="checkbox" class="btn-check" name="PaymentMethod" id="refundedCheck" value="Refund">
+                <label class="btn btn-outline-danger" for="refundedCheck">Refunded</label>
+
+
+            </div>
+    </div>
+        <table id="Transaction_table" class="table table-striped table-bordered" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Transaction ID</th>
+                    <th>Reservation ID</th>
+                    <th>Customer Name</th>
+                    <th>Amount</th>
+                    <th>Description</th>
+                    <th>Payment Method</th>
+                    <th>DateTime</th>
+                    <th>Previously Refunded</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/transaction.js"></script>
+
+     <script>
+            /*I want to be able to take all the rows already on the page
+            and dynamically filter them to display the following:
+                cash
+                check
+                credit
+                all refunded (both previouslyRefunded is yes and the description includes "REFUND")
+
+            */
+        
+           
+        // $("#cashCheck" || "#checkCheck" || "#creditCheck" || "#refundedCheck").click(function () {
+        //     //another button besides all is clicked, disable all
+        //     $('#allCheck').prop('checked', false);
+        // });
+        // $('#allCheck').click(function (){
+        //     $("#cashCheck").prop('checked', false);
+        //     $("#checkCheck").prop('checked', false);
+        //     $("#creditCheck").prop('checked', false);
+        //     $("#refundedCheck").prop('checked', false);
+
+        //     $('Transaction_table').table.column(7).search('').draw();
+        //     $('Transaction_table').table.column(5).search('').draw();
+
+        // });
+        
+    </script>
+}

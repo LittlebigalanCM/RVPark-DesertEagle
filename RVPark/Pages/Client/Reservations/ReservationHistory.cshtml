@@ -1,0 +1,83 @@
+﻿@page
+@model RVPark.Pages.Client.Reservations.ReservationHistoryModel
+@using ApplicationCore.Enums
+@{
+    ViewData["Title"] = "Reservation History";
+    string RenderStatus(string status)
+    {
+        var statusLower = status?.ToLower() ?? "";
+        var badge = statusLower switch
+        {
+            "confirmed" or "active" => "success",
+            "pending" => "warning",
+            "cancelled" or "canceled" => "danger",
+            "completed" => "primary",
+            "refunded" => "info",
+            _ => "secondary"
+        };
+        return $"<span class='badge bg-{badge}' style='font-size: 0.85rem;'>{status}</span>";
+    }
+}
+<input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+
+<div class="container pt-4">
+    <div class="text-center mb-4">
+        <a asp-page="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back To Current Reservations
+        </a>
+        <h2 class="text-secondary mb-3">Reservation History</h2>
+    </div>
+
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            @if (!Model.PastReservations.Any())
+            {
+                <div class="alert alert-info text-center">You have no past reservations.</div>
+            }
+            else
+            {
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Reservation #</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Site</th>
+                            <th>Status</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reservation in Model.PastReservations)
+                        {
+                            <tr>
+                                <td>@reservation.ReservationId</td>
+                                <td>@reservation.StartDate.ToShortDateString()</td>
+                                <td>@reservation.EndDate.ToShortDateString()</td>
+                                <td>@reservation.SiteName</td>
+                                <td>@Html.Raw(RenderStatus(reservation.Status))</td>
+                                <td class="text-center">
+                                    <a asp-page="/Client/Reservations/Receipt"
+                                       asp-route-reservationId="@reservation.ReservationId"
+                                       class="btn btn-sm btn-warning me-1 mb-1">
+                                        <i class="fas fa-info-circle"></i> Receipt
+                                    </a>
+                                    @if (reservation.BalanceDue > 0 && reservation.TransactionId.HasValue)
+                                    {
+                                        <a asp-page="/Client/Reservations/Payment"
+                                           asp-route-transactionId="@reservation.TransactionId"
+                                           class="btn btn-sm btn-success mb-1">
+                                            <i class="fas fa-credit-card"></i> Pay Now ($@reservation.BalanceDue)
+                                        </a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+
+                </table>
+            }
+        </div>
+    </div>
+</div>

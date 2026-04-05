@@ -1,0 +1,231 @@
+﻿@page "{handler?}"
+@model RVPark.Pages.Client.Reservations.ReceiptModel
+@using Infrastructure.Utilities
+@using ApplicationCore.Models
+@{
+    ViewData["Title"] = "Reservation Receipt";
+    bool showAll = !Model.PaymentTransactionId.HasValue;
+
+    var nights = Math.Max((Model.Reservation.EndDate.Date - Model.Reservation.StartDate.Date).Days, 0);
+    var baseTx = Model.Transactions
+        .FirstOrDefault(t => (t.Description ?? "").ToLower().Contains("base reservation"));
+    var pricePerDay = (baseTx != null && nights > 0) ? baseTx.Amount / nights : 0m; // This is showing the average of all rates, not the actual rates used. This is FINE and probably doesn't need to change
+}
+<input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="my-2">Reservation Receipt</h4>
+                    <a asp-page-handler="DownloadReceipt"
+                       asp-route-reservationId="@Model.Reservation.ReservationId"
+                       asp-route-transactionId="@(Model.PaymentTransactionId ?? 0)"
+                       class="btn btn-outline-light">
+                        <i class="fas fa-file-pdf me-1"></i> Download PDF
+                    </a>
+                </div>
+
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="form-group row mb-3" id="PCSMessage" style="display: none;">
+                            <div class="col-sm-8">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> Your reservation will be marked as "Pending" until proof of PCS orders is provided.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group row mb-3" id="DisabilityMessage" style="display: none;">
+                            <div class="col-sm-8">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> Your reservation will be marked as "Pending" until proof of Disability is provided.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h5 class="fw-semibold text-secondary">Reservation Details</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><strong>ID:</strong> @Model.Reservation.ReservationId</li>
+                                <li class="list-group-item"><strong>Status:</strong> @Model.Reservation.ReservationStatus</li>
+                                <li class="list-group-item"><strong>Guest:</strong> @Model.Reservation.UserAccount?.FullName</li>
+                                <li class="list-group-item"><strong>Start Date:</strong> @Model.Reservation.StartDate.ToShortDateString()</li>
+                                <li class="list-group-item"><strong>End Date:</strong> @Model.Reservation.EndDate.ToShortDateString()</li>
+                                <li class="list-group-item"><strong>Nights:</strong> @nights</li>
+                                <li class="list-group-item"><!-- <strong>Trailer Length:</strong> @(Model.Reservation.TrailerLength ?? 0) ft --></li>
+
+                            </ul>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h5 class="fw-semibold text-secondary">Site Info</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><strong>Site Name:</strong> @Model.Reservation.Site?.Name</li>
+                                <li class="list-group-item"><strong>Site Type:</strong> @Model.Reservation.Site?.SiteType?.Name</li>
+                                <li class="list-group-item"><strong>Max Trailer Size:</strong> @(Model.Reservation.Site?.TrailerMaxSize ?? 0) ft</li>
+                                <li class="list-group-item"><strong>Average Base Price Per Day:</strong> @pricePerDay.ToString("C")</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="fw-semibold text-secondary">Transaction Summary</h5>
+
+                        @if (!Model.Transactions.Any())
+                        {
+                            <div class="alert alert-warning">No transactions found for this reservation.</div>
+                        }
+                        else
+                        {
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th class="text-end">Amount</th>
+                                        <th class="text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var tx in Model.Transactions
+                                   .OrderBy(t => t.Amount < 0 ? 3 :
+                                   t.Description?.ToLower().Contains("cancel") == true ? 2 : 1)
+                                   .ThenBy(t => t.TransactionDateTime))
+                                    {
+                                        var status = tx.Amount < 0 ? "Refunded" : tx.IsPaid ? "Paid" : "Unpaid";
+                                        <tr>
+                                            <td>@tx.TransactionDateTime.ToString("g")</td>
+                                            <td>
+                                                @tx.Description
+                                                @if (tx.Amount >= 0 && !tx.Description.ToLower().Contains("base reservation")) // Skip breakdown for base amount, as it doesn't work with multiple rates
+                                                {
+                                                    <em class="text-muted">&lpar;
+                                                    @{
+                                                        var evalKey = Model.EvaluationDetails.ContainsKey(tx.TransactionId)
+                                                        ? tx.TransactionId
+                                                        : tx.FeeId;
+
+                                                        if (Model.EvaluationDetails.TryGetValue(evalKey, out var eval))
+                                                        {
+                                                            @eval.GetBreakdown();
+                                                        }
+                                                        else
+                                                        {
+                                                            @ReceiptModel.GetBreakdown(tx, nights, Model.Reservation.DynamicData);
+                                                        }
+                                                    }
+                                                    &rpar;</em>
+                                                }
+                                            </td>
+                                            <td class="text-end">@tx.Amount.ToString("C")</td>
+                                            <td class="text-center">
+                                                <span class="badge bg-@(status == "Paid" ? "success" : status == "Refunded" ? "danger" : "warning")">
+                                                    @status
+                                                </span>
+                                            </td>
+                                        </tr>
+
+                                        @* @if (tx.Amount >= 0 && tx.FeeId != 1) // Skip breakdown for base amount, as it doesn't work with multiple rates
+                                        {
+                                            <tr class="bg-light small text-muted">
+                                                <td colspan="4">
+                                                    <strong>Breakdown:</strong>
+                                                    @{
+                                                        var evalKey = Model.EvaluationDetails.ContainsKey(tx.TransactionId)
+                                                                                ? tx.TransactionId
+                                                                                : tx.FeeId;
+
+                                                        if (Model.EvaluationDetails.TryGetValue(evalKey, out var eval))
+                                                        {
+                                                            @eval.GetBreakdown()
+                                                        }
+                                                        else
+                                                        {
+                                                            @ReceiptModel.GetBreakdown(tx, nights, Model.Reservation.DynamicData)
+                                                        }
+                                                    }
+                                                </td>
+                                            </tr>
+                                        } *@
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="fw-semibold text-secondary">Totals</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <p><strong>Total Paid:</strong> @Model.TotalPaid.ToString("C")</p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Total Refunded:</strong> @Model.TotalRefunded.ToString("C")</p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Balance Due:</strong> <span class="text-danger">@Model.BalanceDue.ToString("C")</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end mt-3">
+                        @if (User.IsInRole(SD.AdminRole) || User.IsInRole(SD.StaffRole) || User.IsInRole(SD.CampHostRole))
+                        {
+                            <a asp-page="/Admin/Reservations/Index" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Admin Reservations
+                            </a>
+                        }
+                        else if (!string.IsNullOrEmpty(Model.ReturnUrl))
+                        {
+                            <a href="@Model.ReturnUrl" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Reservation History
+                            </a>
+                        }
+                        else
+                        {
+                            <a asp-page="/Client/Reservations/Index" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Current Reservations
+                            </a>
+                        }
+
+                        @if (Model.BalanceDue > 0)
+                        {
+                            <a href="@Model.StripePaymentLink" class="btn btn-success">
+                                <i class="bi bi-credit-card-2-front me-1"></i> Pay Balance Now (@Model.BalanceDue.ToString("C"))
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    $(document).ready(function () {
+            showPendingMessages();
+            //Eventually, add the disability message here too
+     })
+    
+    function showPendingMessages(){
+        const PCSMessage = $("#PCSMessage")
+        const DisabilityMessage = $("#DisabilityMessage")
+
+        if(@Model.Reservation.RequiresPCS){
+            PCSMessage.show();
+        }
+        else{
+            PCSMessage.hide();
+        }
+        if(@Model.Reservation.RequiresDisability){
+            DisabilityMessage.show();
+        }
+        else{
+            DisabilityMessage.hide();
+        }
+
+        //Eventually, add the disability message here too
+    }
+</script>

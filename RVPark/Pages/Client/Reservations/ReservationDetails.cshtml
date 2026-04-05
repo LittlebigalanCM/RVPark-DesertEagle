@@ -1,0 +1,125 @@
+﻿@page "{id:int}"
+@model RVPark.Pages.Client.Reservations.ReservationDetailsModel
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@using ApplicationCore.Models
+@{
+    ViewData["Title"] = "Reservation Details";
+    var reservation = Model.Reservation;
+}
+<input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="my-2"><i class="fas fa-clipboard-list me-2"></i>Reservation Details</h4>
+                    <a class="btn btn-outline-light"
+                       asp-page="/Client/Reservations/Receipt"
+                       asp-route-reservationId="@reservation.ReservationId"
+                       asp-route-origin="@Model.Origin"
+                       asp-route-returnUrl="@Model.ReturnUrl">
+                        <i class="fas fa-file-invoice"></i> View Receipt
+                    </a>
+                </div>
+                <div class="card-body">
+
+                    <div class="row mb-4">
+                        <!-- Reservation Info -->
+                        <div class="col-md-6">
+                            <h5 class="fw-semibold text-secondary">Reservation Details</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><strong>ID:</strong> @reservation.ReservationId</li>
+                                <li class="list-group-item"><strong>Status:</strong> @reservation.ReservationStatus</li>
+                                <li class="list-group-item"><strong>Start Date:</strong> @reservation.StartDate</li>
+                                <li class="list-group-item"><strong>End Date:</strong> @reservation.EndDate</li>
+                                <li class="list-group-item"><strong>Nights:</strong> @Model.NumberOfNights</li>
+                                <li class="list-group-item"><strong>Trailer Length:</strong> @(reservation.TrailerLength ?? 0) ft</li>
+                            </ul>
+                        </div>
+
+                        <!-- Site Info -->
+                        <div class="col-md-6">
+                            <h5 class="fw-semibold text-secondary">Site Info</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><strong>Site Name:</strong> @reservation.Site?.Name</li>
+                                <li class="list-group-item"><strong>Site Type:</strong> @reservation.Site?.SiteType?.Name</li>
+                                <li class="list-group-item"><strong>Max Trailer Size:</strong> @(reservation.Site?.TrailerMaxSize ?? 0) ft</li>
+                                <li class="list-group-item"><strong>Base Price:</strong> @Model.PricePerDay.ToString("C")</li>
+                            </ul>
+                        </div>
+                    </div>
+
+
+                    <!-- Transaction Summary -->
+                    <div class="mb-4">
+                        <h5 class="fw-semibold text-secondary">Transaction Summary</h5>
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Type</th>
+                                    <th class="text-end">Amount</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var txn in Model.AllTransactions.OrderBy(t => t.Amount < 0 ? 3 : t.Fee?.DisplayLabel?.ToLower().Contains("cancel") == true ? 2 : 1).ThenBy(t => t.TransactionDateTime))
+                                {
+                                    var status = txn.Amount < 0 ? "Refunded" : txn.IsPaid ? "Paid" : "Unpaid";
+                                    <tr>
+                                        <td>@(txn.Fee?.DisplayLabel ?? txn.Fee?.Name ?? "Unknown")</td>
+                                        <td class="text-end">@((txn.Amount < 0 ? $"({Math.Abs(txn.Amount):C})" : txn.Amount.ToString("C")))</td>
+                                        <td>
+                                            <span class="badge bg-@(status == "Paid" ? "success" : status == "Refunded" ? "danger" : "warning")">
+                                                @status
+                                            </span>
+                                        </td>
+                                        <td>@txn.TransactionDateTime.ToString("g")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Totals -->
+                    <div class="mb-4">
+                        <h5 class="fw-semibold text-secondary">Totals</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <p><strong>Total Paid:</strong> @Model.AmountPaid.ToString("C")</p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Total Refunded:</strong> @Model.TotalRefunded.ToString("C")</p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Final Balance:</strong> <span class="text-danger">@Model.FinalBalance.ToString("C")</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end mt-3">
+                        @if (!string.IsNullOrEmpty(Model.ReturnUrl))
+                        {
+                            <a href="@Model.ReturnUrl" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Reservation History
+                            </a>
+                        }
+                        else
+                        {
+                            <a asp-page="/Client/Reservations/Index" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Reservations
+                            </a>
+                        }
+
+                        @if (Model.FinalBalance > 0)
+                        {
+                            <a href="@Model.StripePaymentLink" class="btn btn-success">
+                                <i class="bi bi-credit-card-2-front me-1"></i> Pay Balance Now
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

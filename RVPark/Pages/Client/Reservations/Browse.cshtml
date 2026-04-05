@@ -1,0 +1,977 @@
+@page
+@using Infrastructure.Utilities
+@using System.Text.Json
+@model RVPark.Pages.Client.Reservations.BrowseModel
+@{
+    ViewData["Title"] = "Browse Reservations";
+}
+
+<form method="post">
+    <div class="container">
+        <div class="row px-2 mx-2 backgroundWhite border">
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <div class="col-12 px-3" style="border-bottom:1px solid #325d88">
+                <h2 class="text-primary">Browse Available Sites</h2>
+                @if (User.IsInRole(SD.ClientRole))
+                {
+                    <p class="text-muted">Explore our campsite options and pricing. <a type="button" class="link-primary" data-bs-toggle="modal" data-bs-target="#builderHelpModal">Need help?</a></p>
+                }
+                else
+                {
+                    <p class="text-muted">Explore our campsite options and pricing. You'll be asked to log in before completing your reservation. <a type="button" class="link-primary" data-bs-toggle="modal" data-bs-target="#builderHelpModal">Need help?</a></p>
+                }
+            </div>
+
+            <div class="col-12 pt-3 order-lg-1">
+                <!-- Dates Section -->
+                <div class="form-group row mb-3">
+                    <div class="col-sm-4">
+                        <h5>
+                            <label asp-for="StartDate">Check-in Date</label>
+                        </h5>
+                    </div>
+                    <div class="col-sm-8">
+                        <input type="date" class="form-control" asp-for="StartDate" id="startDate" onkeydown="return false;"/>
+                        <span class="text-danger" asp-validation-for="StartDate"></span>
+                    </div>
+                </div>
+
+                <div class="form-group row mb-3">
+                    <div class="col-sm-4">
+                        <h5>
+                            <label asp-for="EndDate">Check-out Date</label>
+                        </h5>
+                    </div>
+                    <div class="col-sm-8">
+                        <input type="date" class="form-control" asp-for="EndDate" id="endDate" onkeydown="return false;"/>
+                        <span class="text-danger" asp-validation-for="EndDate"></span>
+                    </div>
+                </div>
+
+                <!-- Site Type Selection -->
+                <div class="form-group row mb-3">
+                    <div class="col-sm-4">
+                        <h5>
+                            <label>Site Types</label>
+                        </h5>
+                        <p class="text-info">Wagon Wheel Pull-through sites are available by phone reservation only. Please call to book these premium sites.</p>
+                    </div>
+                    <div class="col-sm-8">
+                        <div id="siteTypeCheckboxes">
+                            <!-- Select / Deselect buttons -->
+                            <div class="mb-2 d-flex gap-2">
+                                <button type="button" id="selectAllSiteTypes"
+                                        class="btn btn-outline-primary btn-sm px-2 py-1">
+                                    Select All
+                                </button>
+
+                                <button type="button" id="deselectAllSiteTypes"
+                                        class="btn btn-outline-secondary btn-sm px-2 py-1">
+                                    Deselect All
+                                </button>
+                            </div>
+
+                            @foreach (var siteType in Model.SiteTypes
+                                                        .Where(st => st.SiteTypeId != 5 && st.SiteTypeId != 6)
+                                                        .OrderBy(st => st.SiteTypeId == 4 ? 1 : 0)
+                                                        .ThenBy(st => st.SiteTypeId))
+                            {
+                                if (siteType.SiteTypeId != 5 && siteType.SiteTypeId != 6) // Exclude Short Term Storage and Wagon Wheel
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input site-type-checkbox" type="checkbox" value="@siteType.SiteTypeId" id="siteType_@siteType.SiteTypeId" checked="@(siteType.SiteTypeId == 3)" />
+                                        <label class="form-check-label" for="siteType_@siteType.SiteTypeId">
+                                            @siteType.Name: <span class="text-success font-weight-bold" id="siteTypePrice_@siteType.SiteTypeId"></span>
+                                        </label>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Handicapped Filter -->
+                <div class="form-group row mb-3">
+                    <div class="col-sm-4">
+                        <h5>
+                            <label>Show Handicapped Sites</label>
+                        </h5>
+                    </div>
+                    <div class="mt-auto mb-auto col-sm-8">
+                        <input type="checkbox" id="showHandicapped" />
+                        <label for="showHandicapped">Include Handicapped-Accessible Sites</label>
+                    </div>
+                </div>
+
+                <!-- Trailer Length - Only visible if RV site types are selected -->
+                <div class="form-group row mb-3" id="trailerLengthSection">
+                    <div class="col-sm-4">
+                        <h5>
+                            <label asp-for="TrailerLength">Trailer Length (in feet)</label>
+                        </h5>
+                    </div>
+                    <div class="col-sm-8">
+                        <input class="form-control" asp-for="TrailerLength" id="trailerLength" />
+                        <span class="text-danger" asp-validation-for="TrailerLength"></span>
+                    </div>
+                </div>
+
+                <div class="form-group row mb-3" id="vehicleSection">
+                    <div class="col-sm-4">
+                        <h5>
+                            <label for="NumberOfVehicles">Number of Vehicles</label>
+                        </h5>
+                        <p class="text-info small">Only vehicles with license plates need to be counted.</p>
+                    </div>
+
+                    <div class="col-sm-8">
+
+                        <select class="form-select" id="NumberOfVehicles" name="NumberOfVehicles" required>
+                            <option value="1">1 Vehicle</option>
+                            <option value="2">2 Vehicles</option>
+                            <option value="3">3 Vehicles</option>
+                        </select>
+
+                        <div id="vehiclePlateFields">
+                            <div class="mb-3" id="vehiclePlate1Wrapper">
+                                <label class="form-label fw-bold">Vehicle #1 License Plate</label>
+                                <input asp-for="VehiclePlate1"
+                                       class="form-control"
+                                       maxlength="10" />
+                            </div>
+
+                            <div class="mb-3" id="vehiclePlate2Wrapper">
+                                <label class="form-label fw-bold">Vehicle #2 License Plate</label>
+                                <input asp-for="VehiclePlate2"
+                                       class="form-control"
+                                       maxlength="10" />
+                            </div>
+
+                            <div class="mb-3" id="vehiclePlate3Wrapper">
+                                <label class="form-label fw-bold">Vehicle #3 License Plate</label>
+                                <input asp-for="VehiclePlate3"
+                                       class="form-control"
+                                       maxlength="10" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Find Available Sites Button -->
+                <div class="form-group row mb-3">
+                    <div class="col-sm-12 d-flex gap-3">
+                        <button type="button" class="btn btn-primary w-100" id="findAvailableSites" data-bs-toggle="modal" data-bs-target="#siteMapModal" disabled>
+                            Check Availability
+                        </button>
+                        <a asp-page="/Client/Sites/Index" class="btn btn-secondary w-100">Browse All Sites</a>
+                    </div>
+                </div>
+
+                <!-- Handicapped Site Message -->
+                <div class="form-group row mb-3" id="handicappedMessage" style="display: none;">
+                    <div class="col-sm-8 offset-sm-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Reserved for our Wounded Warriors: You have selected a handicapped-accessible site. Please ensure you require this accommodation, as these sites are reserved for those with accessibility needs.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PCS orders Message -->
+                <div class="form-group row mb-3" id="PCSMessage" style="display: none;">
+                    <div class="col-sm-8 offset-sm-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Your reservation is over 180 days. To be able to stay this long, you will need to provide proof of PCS orders so that we can accomodate you.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @Html.Hidden("SiteId", "", new { id = "chosenSiteId" })
+        </div>
+    </div>
+
+    <!-- SVG Map Modal -->
+    <div class="modal fade" id="siteMapModal" tabindex="-1" aria-labelledby="siteMapModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="siteMapModalLabel"><i class="fas fa-map-marked-alt"></i> Select a Campsite</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background-color: lightgrey">
+                    <div class="map-container">
+                        <!-- Colorblind Mode Toggle - Top Right -->
+                        <div class="colorblind-toggle-top">
+                            <label for="colorblind-mode-toggle">Colorblind Mode</label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="colorblind-mode-toggle" />
+                                <span class="toggle-slider"></span>
+                            </div>
+                            <p style="font-size: .75em">(use scroll wheel to zoom)</p>
+                        </div>
+
+                        <!-- Map Controls -->
+                        <div class="map-controls d-flex justify-content-between align-items-center mb-2">
+                            <h4 class="mb-0">RV Park Layout</h4>
+
+                            <!-- Legend only -->
+                            <div class="legend">
+                                <div class="legend-item">
+                                    <div class="legend-color legend-available" style="background-color: var(--accent-color);"></div>
+                                    <span>Available</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color legend-unavailable" style="background-color: var(--secondary-color)"></div>
+                                    <span>Unavailable</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color legend-selected" style="background-color: var(--gold-accent);"></div>
+                                    <span>Selected</span>
+                                </div>
+                            </div>
+
+                            <button id="zoom-out-btn" class="btn btn-primary btn-sm" disabled title="Reset map to full view">
+                                <i class="fas fa-search-minus"></i> Reset Zoom
+                            </button>
+                        </div>
+
+                        <!-- SVG Map -->
+                        <div id="svg-map" class="svg-map">
+                            Loading map...
+                        </div>
+                        <div class="site-tooltip" id="site-tooltip"></div>
+                    </div>
+                    <!-- Mini Map -->
+                    <div id="mini-map-container">
+                        <svg id="mini-map" width="100%" height="100%"></svg>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <!--
+                        Need to run an if here to see if it will link to a "Sign in to continue" or just continue the reservation process and reroute to the right page
+                        ****Make sure it has the right information passed with it****
+                    -->
+                    @if (User.IsInRole(SD.ClientRole))
+                    {
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="document.getElementById('continueButton').click()">Confirm Selection</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="document.getElementById('continueButton').click()">Log in to Continue</button>
+                    }
+                    <button type="button" id="continueButton" hidden></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Need Help? Modal -->
+<div class="modal fade" id="builderHelpModal" tabindex="-1" aria-labelledby="builderHelpModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="builderHelpModalLabel">How to Create a Reservation</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<ol class="mb-3">
+					<li class="mb-2">
+						You must be logged in to create an account.
+					</li>
+					<li class="mb-2">
+						Select <strong>check-in</strong> and <strong>check-out</strong> dates.
+					</li>
+					<li class="mb-2">
+						Select site types to search for, select handicapped accessiblity (if applicable).
+					</li>
+					<li class="mb-2">
+						Enter your trailer length (if applicable).
+					</li>
+					<li class="mb-2">
+						Select 'Check Availability' to view the site map.
+					</li>
+					<li>
+						Select a site and continue to complete your reservation.
+					</li>
+				</ol>
+
+				<p class="mb-1"><strong>Note:</strong></p>
+				<ul>
+					<li>Wagon Wheel Pull-through sites are available by phone reservation only. Please call to book these premium sites.</li>
+                    <li>A <b>Standard Site</b> can accomodate up to two license plates.</li>
+                    <li>A <b>Premium Site</b> can accomodate up to three license plates.</li>
+				</ul>
+			</div>
+			<div class="modal-footer">
+				<button class="btn btn-primary" data-bs-dismiss="modal">Got it</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+@section Scripts {
+    <script src="~/js/siteMap.js?v=@DateTime.Now.Ticks"></script>
+    <partial name="_ValidationScriptsPartial" />
+    @if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+    {
+        //<script src="~/lib/aspnetcore-browser-refresh.js"></script>
+    }
+    <script>
+        $(document).ready(function() {
+            const rvSiteTypeIds = [1, 2, 3, 7]; // Premium Pull-Through, Premium Back-In, Standard, Partial Hookup
+            const tentSiteTypeId = 4; // Tent/Overflow
+            const standardSiteTypeId = 3; // Standard (45ft limit)
+            let isProgrammaticChange = false;
+
+            // For updating the prices listed by the SiteType checkboxes
+            const siteTypes = @Html.Raw(Json.Serialize(Model.SiteTypes));
+            const siteTypePrices = @Html.Raw(Json.Serialize(Model.SiteTypePrices));
+
+            // Initialize with all but Tent/Overflow checked by default
+            function initializeDefaultSelections() {
+                // Check all checkboxes first
+                $('.site-type-checkbox').prop('checked', true);
+                // Uncheck Tent/Overflow by default
+                $('#siteType_4').prop('checked', false);
+                initializeTrailerLengthVisibility();
+                updateValidationMessages();
+                updateSiteTypePrices();
+            }
+
+            function initializeTrailerLengthVisibility() {
+                const hasRvChecked = $('.site-type-checkbox:checked').toArray()
+                    .some(cb => rvSiteTypeIds.includes(parseInt($(cb).val())));
+                const showHandicapped = $('#showHandicapped').is(':checked');
+
+                // Show trailer length section if RV types are selected or handicapped filter is checked
+                const shouldShowTrailerLength = hasRvChecked || showHandicapped;
+                $('#trailerLengthSection').toggle(shouldShowTrailerLength);
+
+                // Only clear trailer length if no RV types and handicapped filter is off
+                if (!hasRvChecked && !showHandicapped) {
+                    $('#trailerLength').val('');
+                    console.log('Cleared trailer length because no RV types selected and handicapped filter off');
+                }
+
+                updateFindButtonState();
+                updateValidationMessages();
+            }
+
+            function updateFindButtonState() {
+                 const selectedSiteTypes = $('.site-type-checkbox:checked').map(function () {
+                    return parseInt($(this).val());
+                }).get();
+
+                const hasAnyChecked = selectedSiteTypes.length > 0;
+                const hasRvChecked = selectedSiteTypes.some(id => [1, 2, 3, 7].includes(id));
+                const hasTentChecked = selectedSiteTypes.includes(4);
+                const showHandicapped = $('#showHandicapped').is(':checked');
+
+                const trailerLength = parseFloat($('#trailerLength').val());
+                const trailerValid = $('#trailerLength').valid();
+
+                const needsTrailerLength = (hasRvChecked || (selectedSiteTypes.length === 0 && showHandicapped)) && !hasTentChecked;
+
+                const trailerLengthIsValid = !needsTrailerLength || (trailerLength > 0 && trailerValid);
+
+                const isValid = hasAnyChecked && trailerLengthIsValid;
+
+                $('#findAvailableSites').prop('disabled', !isValid);
+            }
+
+            function updateValidationMessages() {
+                $('.validation-message').remove();
+
+                const hasRvChecked = $('.site-type-checkbox:checked').toArray()
+                    .some(cb => rvSiteTypeIds.includes(parseInt($(cb).val())));
+                const hasTentChecked = $('#siteType_' + tentSiteTypeId).is(':checked');
+                const trailerLength = parseFloat($('#trailerLength').val()) || 0;
+                const numOfVehicles = parseInt($('#NumberOfVehicles').val()) || 0;
+                const hasStandardChecked = $('#siteType_' + standardSiteTypeId).is(':checked');
+                const hasPartialHookupChecked = $('#siteType_' + 7).is(':checked');
+
+                // Show standard site restriction message
+                if (trailerLength > 45 && !hasStandardChecked) {
+                    $('#siteType_' + standardSiteTypeId).closest('.form-check').append(
+                        '<div class="validation-message text-warning ms-4"><small>Standard sites limited to 45 ft trailers</small></div>'
+                    );
+                }
+
+                // Show tent restriction message
+                if (trailerLength > 0 && !hasTentChecked) {
+                    $('#siteType_' + tentSiteTypeId).closest('.form-check').append(
+                        '<div class="validation-message text-warning ms-4"><small>Tent sites not suitable for trailers</small></div>'
+                    );
+                }
+
+                // Show non-premium vehicle restriction message (standard)
+                if (numOfVehicles > 2 && !hasStandardChecked){ // Seems like it needs to be !hasStandardChecked, not just hasStandardChecked. This seems unintuitive, but it works, because this message should only show up after the checkbox has been auto-deselected anyway. Trust.
+                    $('#siteType_' + standardSiteTypeId).closest('.form-check').append(
+                        '<div class="validation-message text-warning ms-4"><small>Standard sites limited to 2 vehicles</small></div>'
+                    );
+                }
+
+                // Show non-premium vehicle restriction message (wagon)
+                // if (numOfVehicles > 2 && !hasWagonChecked (NOT A REAL VARIABLE!! ADD IT IF THIS ENDS UP BEING NECESSARY FOR SOME REASON)){
+                //     $('#siteType_' + 6).closest('.form-check').append(
+                //         '<div class="validation-message text-warning ms-4"><small>Wagon sites limited to 2 vehicles</small></div>'
+                //     );
+                // }
+
+                // Show non-premium vehicle restriction message (partial hookup)
+                if (numOfVehicles > 2 && !hasPartialHookupChecked){
+                    $('#siteType_' + 7).closest('.form-check').append(
+                        '<div class="validation-message text-warning ms-4"><small>Partial Hookup sites limited to 2 vehicles</small></div>'
+                    );
+                }
+            }
+
+            function enforceCheckboxRules(clickedCheckbox = null) {
+                if (isProgrammaticChange) return;
+
+                const clickedValue = clickedCheckbox ? parseInt($(clickedCheckbox).val()) : null;
+                const clickedIsChecked = clickedCheckbox ? $(clickedCheckbox).is(':checked') : false;
+
+                const tentChecked = $('#siteType_' + tentSiteTypeId).is(':checked');
+                const rvChecked = $('.site-type-checkbox:checked').toArray()
+                    .some(cb => rvSiteTypeIds.includes(parseInt($(cb).val())));
+
+                isProgrammaticChange = true;
+
+                // If tent was just clicked and checked, uncheck all RV types, clear trailer length, and uncheck handicapped
+                if (clickedValue === tentSiteTypeId && clickedIsChecked) {
+                    rvSiteTypeIds.forEach(typeId => {
+                        $('#siteType_' + typeId).prop('checked', false);
+                    });
+                    $('#trailerLength').val('');
+                    $('#showHandicapped').prop('checked', false);
+                    console.log('Tent checked: unchecked all RV types, cleared trailer length, and unchecked handicapped');
+                }
+                // If an RV type was just clicked and checked, uncheck tent
+                else if (rvSiteTypeIds.includes(clickedValue) && clickedIsChecked) {
+                    $('#siteType_' + tentSiteTypeId).prop('checked', false);
+                    console.log('RV type checked: unchecked tent');
+                }
+
+                // If trailer length entered, uncheck tent and handicapped
+                const trailerLength = parseFloat($('#trailerLength').val()) || 0; // This is here in Create.cshtml, but wasn't in Browse? Was it even working before?
+                if (trailerLength > 0) {
+                    // If trailer length entered, uncheck tent
+                    if ($('#siteType_' + tentSiteTypeId).is(':checked')) {
+                        $('#siteType_' + tentSiteTypeId).prop('checked', false);
+                        $('#showHandicapped').prop('checked', false);
+                        console.log('Trailer length entered: unchecked tent and handicapped');
+                    }
+
+                    // If trailer > 45ft, uncheck standard
+                    if (trailerLength > 45 && $('#siteType_' + standardSiteTypeId).is(':checked')) {
+                        $('#siteType_' + standardSiteTypeId).prop('checked', false);
+                        console.log('Trailer length > 45ft: unchecked standard');
+                    }
+                }
+
+                // If num of vehicles exceeds 2, uncheck non-premium
+                const numOfVehicles = parseInt($('#NumberOfVehicles').val()) || 0;
+                if (numOfVehicles > 2){
+                    // NOTE: At some point, it'd be GREAT to have the number of allowed vehicles be a value in SiteType that can be modified! Hard-coding things like this is not good!!!
+
+                    // Standard
+                    if ($('#siteType_' + standardSiteTypeId).is(':checked') && clickedValue != standardSiteTypeId) {
+                        $('#siteType_' + standardSiteTypeId).prop('checked', false);
+                        console.log('More than 2 vehicles: unchecked standard');
+                    }
+                    // Wagon wheel (doesn't this not have a checkbox? Will leave this commented out)
+                    // if ($('#siteType_' + 6).is(':checked')) {
+                    //     $('#siteType_' + 6).prop('checked', false);
+                    //     console.log('More than 2 vehicles: unchecked wagon wheel');
+                    // }
+                    // Partial Hookup
+                    if ($('#siteType_' + 7).is(':checked') && clickedValue != 7) {
+                        $('#siteType_' + 7).prop('checked', false);
+                        console.log('More than 2 vehicles: unchecked partial hookup');
+                    }
+                }
+
+                isProgrammaticChange = false;
+
+                // Update
+                initializeTrailerLengthVisibility();
+            }
+
+            // Initialize default selections
+            initializeDefaultSelections();
+
+            // Date change handlers
+            $('#startDate').change(function() {
+                const startDate = $(this).val();
+                if (startDate) {
+                    // Previously, if endDate was entered first, it got overwritten once startDate was selected.
+                    // This was annoying so I changed it to only overwrite endDate if not doing so would lead to invalid results.
+                    // - Matt
+                    if ($('#endDate').val() <= startDate){
+                        const checkInDate = new Date(startDate);
+                        const checkOutDate = new Date(checkInDate);
+                        checkOutDate.setDate(checkInDate.getDate() + 1);
+                        $('#endDate').val(checkOutDate.toISOString().split('T')[0]);
+                    }
+
+                    fetchAvailableSites();
+                }
+                validateForm();
+            });
+
+            $('#endDate').change(function() {
+                fetchAvailableSites();
+                validateForm();
+            });
+
+            const today = new Date().toISOString().split('T')[0];
+
+            // Block past dates on page load
+            $('#startDate').attr('min', today);
+            $('#endDate').attr('min', today);
+
+            // Update endDate.min when startDate changes
+            $('#startDate').on('change', function () {
+              const selectedStart = new Date($(this).val());
+              selectedStart.setDate(selectedStart.getDate() + 1); // End date must be at least one day after start date
+              const minEndDate = selectedStart.toISOString().split('T')[0];
+              $('#endDate').attr('min', minEndDate);
+            });
+
+            // Checkbox change handlers
+            $('.site-type-checkbox').change(function() {
+                if (!isProgrammaticChange) {
+                    console.log('Checkbox changed:', $(this).val(), 'checked:', $(this).is(':checked'));
+                    enforceCheckboxRules(this);
+                    fetchAvailableSites();
+                    validateForm();
+                    $('#trailerLength').valid();
+                    updateFindButtonState();
+                }
+                updateVehicleLimits();
+            });
+
+            // Trailer length handlers
+            $('#trailerLength').on('input', function() {
+                // Remove trailer length validation message when user starts typing
+                $('.trailer-length-validation').remove();
+
+                const trailerLength = parseFloat($(this).val()) || 0;
+                console.log('Trailer length input:', trailerLength);
+
+                if (trailerLength > 0) {
+                    isProgrammaticChange = true;
+
+                    // If trailer length entered, uncheck tent
+                    if ($('#siteType_' + tentSiteTypeId).is(':checked')) {
+                        $('#siteType_' + tentSiteTypeId).prop('checked', false);
+                        $('#showHandicapped').prop('checked', false);
+                        console.log('Trailer length entered: unchecked tent and handicapped');
+                    }
+
+                    // If trailer > 45ft, uncheck standard
+                    if (trailerLength > 45 && $('#siteType_' + standardSiteTypeId).is(':checked')) {
+                        $('#siteType_' + standardSiteTypeId).prop('checked', false);
+                        console.log('Trailer length > 45ft: unchecked standard');
+                    }
+
+                    isProgrammaticChange = false;
+                    initializeTrailerLengthVisibility();
+                } else {
+                    // When trailer length is cleared,  update validation messages
+                    updateValidationMessages();
+                }
+
+                // Debounce
+                clearTimeout(window.trailerLengthTimeout);
+                window.trailerLengthTimeout = setTimeout(() => {
+                    fetchAvailableSites();
+                    validateForm();
+                    $('#trailerLength').valid();
+                    updateFindButtonState();
+                }, 500);
+            });
+
+            $('#trailerLength').on('change', function() {
+                enforceCheckboxRules();
+                fetchAvailableSites();
+                validateForm();
+            });
+
+            $('#NumberOfVehicles').on('change', function() {
+                enforceCheckboxRules();
+                fetchAvailableSites();
+                validateForm();
+            });
+
+            // Handicapped filter
+            $('#showHandicapped').change(function() {
+                // If handicapped is checked and tent is selected, uncheck tent
+                if ($(this).is(':checked') && $('#siteType_' + tentSiteTypeId).is(':checked')) {
+                    isProgrammaticChange = true;
+                    $('#siteType_' + tentSiteTypeId).prop('checked', false);
+                    console.log('Handicapped checked: unchecked tent');
+                    isProgrammaticChange = false;
+                }
+
+                // Update trailer length visibility when handicapped filter changes
+                initializeTrailerLengthVisibility();
+                fetchAvailableSites();
+                validateForm();
+                $('#trailerLength').valid();
+                updateFindButtonState();
+            });
+
+            // Find available sites button
+            $('#findAvailableSites').click(function() {
+                if (window.deselectSite) {
+                    console.log('Deselecting site on findAvailableSites click');
+                    window.deselectSite();
+                }
+                window.isCheckAvailabilityTriggered = true;
+                fetchAvailableSites();
+                $('#handicappedMessage').hide();
+                console.log('Handicapped message hidden on findAvailableSites click');
+            });
+
+            // Continue button handler
+            $('#continueButton').click(async function(e) {
+                e.preventDefault();
+
+                const siteId = $('#chosenSiteId').val();
+                if(!siteId){
+                    console.warn("No siteId found in #chosenSiteId");
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No Site Selected',
+                        text: 'Please select a site before continuing.'
+                    });
+                    return;
+                }
+
+                let selectedSite = Object.values(window.siteData).find(s => s.siteId.toString() === siteId.toString());
+                if (!selectedSite) {
+                    try {
+                        console.log('Fetching site details for siteId:', siteId);
+                        const response = await $.aax({
+                            url: `/api/Reservation/GetSiteDetails?siteId=${encodeURIComponent(siteId)}`,
+                            method: 'GET',
+                            dataType: 'json'
+                        });
+                        if (response) {
+                            selectedSite = {
+                                siteId: response.siteId.toString(),
+                                name: response.name,
+                                description: response.description,
+                                trailerMaxSize: response.trailerMaxSize,
+                                siteTypeId: response.siteTypeId,
+                                siteType: response.siteTypeName,
+                                pricePerDay: response.pricePerDay,
+                                isHandicappedAccessible: response.isHandicappedAccessible || false
+                            };
+                            window.siteData[response.name] = selectedSite;
+                            console.log('Fetched site details:', selectedSite);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching site details:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Site Data Error',
+                            text: 'Unable to fetch site details. Please try again.',
+                        });
+                        return;
+                    }
+                }
+
+                if (!selectedSite) {
+                    console.error('Selected site data not found for siteId:', siteId);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Site Data Error',
+                        text: 'Selected site data not found. Please try again.',
+                    });
+                    return;
+                }
+
+                // Always show SweetAlert for handicapped sites
+                if (selectedSite.isHandicappedAccessible) {
+                    const result = await Swal.fire({
+                        icon: 'info',
+                        title: 'Handicapped-Accessible Site Selected',
+                        text: 'You have selected a handicapped-accessible site. Please confirm you require this accommodation.',
+                        showCancelButton: true,
+                        confirmButtonText: 'Confirm',
+                        cancelButtonText: 'Select Another Site'
+                    });
+
+                    if (!result.isConfirmed) {
+                        console.log('User cancelled handicapped site confirmation');
+                        return;
+                    }
+                    console.log('User confirmed handicapped site, submitting form');
+                } else {
+                    console.log('Non-handicapped site selected, submitting form');
+                }
+
+                //If the booking is more than 180 days, requires PCS orders to be sent in.
+                //reservation will have to be pending at this point
+                const requiresPCS = (() => {
+                    const startDate = new Date($('#startDate').val()+ 'T00:00:00');
+                    const endDate = new Date($('#endDate').val()+ 'T00:00:00');
+
+                    const diffTime = endDate.getTime() - startDate.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    console.log('PCS check', { startDate, endDate, diffDays });
+                    return diffDays > 180;
+                })();
+
+                const PCSMessage = $('#PCSMessage');
+
+
+                //Sweet alert for PCS
+                if(requiresPCS){
+                    console.log(`Showing PCS message`);
+                    PCSMessage.show();
+
+                    const result = await Swal.fire({
+                            icon: 'info',
+                            title: 'PCS Orders Required',
+                            text: 'Your reservation is over 180 days. To be able to stay this long, you will need to provide proof of PCS orders so that we can accomodate you. Please confirm that you intend to stay this long and that you will provide the appropriate documentation.',
+                            showCancelButton: true,
+                            confirmButtonText: 'Confirm',
+                            cancelButtonText: 'Change Dates'
+                        });
+
+                    if (!result.isConfirmed) {
+                        console.log('User cancelled PCS confirmation');
+                        return;
+                    }
+                    console.log('User confirmed PCS orders, submitting form');
+                    
+                } else {
+                    console.log('PCS orders not required, submitting form');
+                    console.log(`Hiding PCS message`);
+                    PCSMessage.hide();
+                }
+
+                // Submit the form only after confirmation
+                $(this).closest('form').submit();
+            });
+
+            function updateHandicappedMessage(siteId) {
+                const handicappedMessage = $('#handicappedMessage');
+                if (!siteId) {
+                    handicappedMessage.hide();
+                    console.log('No site selected, hiding handicapped message');
+                    return;
+                }
+
+                // Check both window.siteData and local siteData
+                const siteDataToCheck = window.siteData || {};
+                const site = Object.values(siteDataToCheck).find(s => s.siteId.toString() === siteId.toString());
+
+                if (site && site.isHandicappedAccessible) {
+                    console.log(`Showing handicapped message for site: ${site.name}`);
+                    handicappedMessage.show();
+                } else {
+                    console.log(`Hiding handicapped message for siteId: ${siteId}`);
+                    handicappedMessage.hide();
+                }
+            }
+
+            // Update listed SiteType Prices based on user's selected dates
+            function updateSiteTypePrices() {
+                const startDate = $('#startDate').val();
+                const endDate = $('#endDate').val();
+
+                // If dates are missing, just use today's date for startDate and a week later for endDate
+                let userStart = new Date();
+                let userEnd = new Date(userStart.getDate() + 7);
+
+                if (startDate && endDate) {
+                    userStart = new Date(startDate);
+                    userEnd = new Date(endDate);
+                }
+
+                for (const st of siteTypes) {
+                    const el = document.getElementById(`siteTypePrice_${st.siteTypeId}`);
+                    if (!el) continue;
+                    
+                    // Get all prices. If there are none (which there shouldn't ever be), inform the user
+                    const prices = siteTypePrices[st.siteTypeId];
+                    if (!prices || prices.length === 0) {
+                        el.innerHTML = "<em>No pricing available</em>";
+                        continue;
+                    }
+
+                    // Find any prices whose date ranges overlap with the selected range
+                    const applicable = prices.filter(p => {
+                        const pStart = new Date(p.startDate);
+                        const pEnd = p.endDate ? new Date(p.endDate) : null;
+
+                        // Overlap test:
+                        // priceStart <= userEnd AND (priceEnd is null OR priceEnd >= userStart)
+                        return (
+                            pStart <= userEnd &&
+                            (!pEnd || pEnd >= userStart)
+                        );
+                    }).sort((a, b) => new Date(a.startDate) - new Date(b.startDate)); // Sort by startDate
+
+                    if (applicable.length === 0) {
+                        el.innerHTML = "<em>No prices for selected dates</em>";
+                        continue;
+                    }
+
+                    // Formatting
+
+                    const multiplePrices = applicable.length > 1; // To format prices correctly if there are multiple
+                    const finalPrice = applicable[applicable.length - 1]; // To make sure no comma is added if it's the last price shown
+
+                    // Iterate through every applicable Price and append formatted text to htmlParts (the "return" here is what's appending, it's not returning the func at large)
+                    const htmlParts = applicable.map(p => {
+                        const pStartTxt = new Date(p.startDate).toLocaleDateString();
+                        const pEndTxt = p.endDate
+                            ? "to " + new Date(p.endDate).toLocaleDateString()
+                            : "- ongoing";
+
+                        // Format differently depending on whether it has a set endDate or whether multiple prices are used
+                        if (p.endDate === null && multiplePrices === false)
+                        { // There's only one price, and it's indefinite
+                            return `$${p.pricePerDay.toFixed(2)}/night`;
+                        }
+                        else
+                        { // There are either more than one price, or there's an endDate that the user might want to know about, or both
+                            return `$${p.pricePerDay.toFixed(2)}/night <small>(${pStartTxt} ${pEndTxt})</small>` + (p != finalPrice ? ", " : "");
+                        }
+                    });
+
+                    el.innerHTML = htmlParts.join("");
+                }
+            }
+
+            $('#startDate, #endDate').on('change', updateSiteTypePrices);
+
+            function validateForm() {
+                const startDate = $('#startDate').val();
+                const endDate = $('#endDate').val();
+                const selectedSiteTypes = $('.site-type-checkbox:checked').length;
+                const trailerLength = $('#trailerLength').val();
+                const hasRvChecked = $('.site-type-checkbox:checked').toArray()
+                    .some(cb => rvSiteTypeIds.includes(parseInt($(cb).val())));
+                const hasTentChecked = $('#siteType_4').is(':checked');
+                const showHandicapped = $('#showHandicapped').is(':checked');
+                const siteId = $('#chosenSiteId').val();
+
+                // Form is valid if:
+                // 1. Has start and end dates
+                // 2. Either has site types selected or handicapped filter is checked
+                const hasValidSiteSelection = selectedSiteTypes > 0 || showHandicapped;
+                const isValid = startDate && endDate && hasValidSiteSelection;
+
+                $('#findAvailableSites').prop('disabled', !isValid);
+
+                console.log('Validation:', {
+                    startDate: !!startDate,
+                    endDate: !!endDate,
+                    selectedSiteTypes,
+                    showHandicapped,
+                    hasValidSiteSelection,
+                    hasRvChecked,
+                    trailerLength: !!trailerLength,
+                    hasTentChecked,
+                    isValid
+                });
+
+
+                updateValidationMessages();
+            }
+
+            // code for site type prices and modal handlers
+            window.siteData = window.siteData || {};
+
+            $('#siteMapModal').on('shown.bs.modal', function() {
+                if (!window.siteMapInitialized) {
+                    console.log('Initializing SVG map');
+                    loadSvgMap();
+                    window.siteMapInitialized = true;
+                } else if (Object.keys(window.siteData).length > 0) {
+                    console.log('Updating map with existing siteData');
+                    updateMap(Object.values(window.siteData), parseFloat($('#trailerLength').val()) || 0);
+                    const siteId = $('#chosenSiteId').val();
+                    if (siteId) {
+                        updateHandicappedMessage(siteId);
+                    }
+                }
+            });
+
+            $('#siteMapModal').on('hidden.bs.modal', function() {
+                console.log('Modal hidden, resetting siteMapInitialized');
+                window.siteMapInitialized = false;
+                const selectedSiteId = $('#chosenSiteId').val();
+                if (selectedSiteId) {
+                    console.log(`Retaining selected siteId: ${selectedSiteId}`);
+                    updateHandicappedMessage(selectedSiteId);
+                } else {
+                    console.log('No site selected, hiding handicapped message');
+                    $('#handicappedMessage').hide();
+                }
+            });
+        });
+
+        function updateVehiclePlateFields() {
+            const count = parseInt($('#NumberOfVehicles').val()) || 0;
+
+            $('#vehiclePlate1Wrapper').toggle(count >= 1);
+            $('#vehiclePlate2Wrapper').toggle(count >= 2);
+            $('#vehiclePlate3Wrapper').toggle(count >= 3);
+        }
+
+        $('#NumberOfVehicles').on('change', updateVehiclePlateFields);
+
+        function updateVehicleLimits() {
+            const selectedIds = $('.site-type-checkbox:checked').map(function () {
+                return parseInt($(this).val());
+            }).get();
+
+            if (selectedIds.includes(4)) {
+                $('#vehicleSection').hide();
+                $('#NumberOfVehicles').val("1");
+                $('#vehiclePlate1Wrapper, #vehiclePlate2Wrapper, #vehiclePlate3Wrapper').hide();
+                return;
+            }
+
+            $('#vehicleSection').show();
+
+            const hasPremium = selectedIds.includes(1) || selectedIds.includes(2);
+            const hasNonPremiumRv = selectedIds.includes(3) || selectedIds.includes(7);
+
+            let max = 2;
+            if (hasPremium && !hasNonPremiumRv) {
+                max = 3;
+            }
+
+            let current = parseInt($('#NumberOfVehicles').val());
+            if (current > max || isNaN(current)) {
+                $('#NumberOfVehicles').val(max);
+                current = max;
+            }
+
+            // I THINK this is the code that grays out the 3 vehicle option.
+            // TODO: Considering this is commented out now, double-check whether any of this function is even necessary.
+            // $('#NumberOfVehicles option').each(function () {
+            //     let val = parseInt($(this).val());
+            //     $(this).prop('disabled', val > max);
+            // });
+
+            updateVehiclePlateFields();
+        }
+
+        updateVehiclePlateFields();
+        updateVehicleLimits();
+
+    </script>
+}

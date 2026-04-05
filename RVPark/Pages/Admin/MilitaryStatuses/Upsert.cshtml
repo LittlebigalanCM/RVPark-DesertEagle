@@ -1,0 +1,55 @@
+﻿@page
+@model RVPark.Pages.Admin.MilitaryStatuses.UpsertModel
+@{
+}
+<form method="post" asp-action="Upsert" enctype="multipart/form-data">
+	<div class="container">
+		<div class="row px-2 mx-2 backgroundWhite border">
+			@* All for Model validation and HTML validation *@
+			<div asp-validation-summary="All" class="text-danger"></div>
+
+			<div class="col-8 pt-3">
+				<div class="form-group row pt-3">
+					<div class="col-3">
+						<label asp-for="MilitaryStatus.Status">Status</label>
+					</div>
+					<div class="col-9">
+						<input id="militaryRankStatusName" class="form-control" asp-for="MilitaryStatus.Status" value="@Model.MilitaryStatus.Status" />
+						<span class="text-danger" asp-validation-for="MilitaryStatus.Status"></span>
+					</div>
+					
+					<div>
+						@{
+							int statusId = 0;
+						}
+
+						@try
+						{
+							statusId = int.Parse(Request.Query["statusId"]);
+						}
+						catch
+						{
+							statusId = 0;
+						}
+
+						<input asp-for="MilitaryStatus.Id" type="hidden" value="@statusId" />
+
+
+						@if (statusId == 0)
+						{
+							<button class="btn btn-primary" type="submit"> Create </button>
+
+						}
+						else
+						{
+							<button class="btn btn-primary" type="submit"> Update </button>
+
+						}
+						<a class="btn btn-secondary" asp-page="./Index">Back to List</a>
+					</div>
+				</div>
+
+			</div>
+		</div>
+	</div>
+</form>

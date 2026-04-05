@@ -1,0 +1,302 @@
+﻿@page
+@model RegisterModel
+@using Infrastructure.Services
+@using Infrastructure.Utilities
+
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div>
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <form method="post" autocomplete="off" asp-route-returnUrl="@Model.ReturnUrl">
+                <h1 class="text-center">
+                    @if (User.IsInRole(SD.AdminRole))
+                    {
+                        <span>Create a User</span>
+                    }
+                    else
+                    {
+                        <span>Create a New Account</span>
+                    }
+                </h1>
+                <hr />
+                <div class="form-row py-2">
+                    <div class="col">
+                        <div class="form-floating mb-3">
+                            <input type="text" asp-for="Input.FirstName" autocomplete="off" placeholder="First Name" class="form-control" />
+                            <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+                            <label asp-for="Input.FirstName" class="form-label">First Name</label>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-floating mb-3">
+                            <input type="text" asp-for="Input.LastName" autocomplete="off" placeholder="Last Name" class="form-control" />
+                            <span asp-validation-for="Input.LastName" class="text-danger"></span>
+                            <label asp-for="Input.LastName" class="form-label">Last Name</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-floating mb-3">
+                    <input type="email" asp-for="Input.Email" autocomplete="off" placeholder="Email" class="form-control" />
+                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                    <label asp-for="Input.Email" class="form-label">Email</label>
+                </div>
+                <div class="form-floating mb-3">
+                    <input type="text" asp-for="Input.PhoneNumber" autocomplete="off" placeholder="Phone Number" class="form-control" />
+                    <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
+                    <label asp-for="Input.PhoneNumber" class="form-label">Phone Number</label>
+                </div>
+                <div class="py-2">
+                    <div class="col-9">
+                        @Html.DropDownListFor(m => m.Input.SelectedStatusId, Model.MilitaryStatusesList, " - Please select a Military Status - ", new { @class = "form-control selectpicker", @id = "ddlStatuses", data_live_search = "true" })
+                    </div>
+                    <span asp-validation-for="Input.SelectedStatusId" class="text-danger"></span>
+                </div>
+                <div class="py-2" id="branchWrapper" style="display:none;">
+                    <div class="col-9">
+                        @Html.DropDownListFor(m => m.Input.SelectedBranchId, Model.MilitaryBranchesList, " - Please select a Military Branch - ", new { @class = "form-control selectpicker", @id = "ddlBranches", data_live_search = "true" })
+                    </div>
+                    <span asp-validation-for="Input.SelectedBranchId" class="text-danger"></span>
+                </div>
+                <div class="py-2" id="rankWrapper" style="display:none;">
+                    <div class="col-9">
+                        @Html.DropDownListFor(m => m.Input.SelectedRankId, Model.MilitaryRanksList, " - Please select a Military Rank - ", new { @class = "form-control selectpicker", @id = "ddlRanks", data_live_search = "true" })
+                    </div>
+                    <span asp-validation-for="Input.SelectedRankId" class="text-danger"></span>
+                </div>
+                @* <div class="py-2" id="gsPayWrapper" style="display:none;">
+                    <div class="col-9">
+                        @Html.DropDownListFor(m => m.Input.SelectedGSPayId, Model.GSPayGradesList, " - Please select a GS Pay Grade - ", new { @class = "form-control selectpicker", @id = "ddlGSPayGrades", data_live_search = "true" })
+                    </div>
+                    <span asp-validation-for="Input.SelectedGSPayId" class="text-danger"></span>
+                </div> *@
+                <div class="position-relative mb-3">
+                    <div class="form-floating">
+                        <input asp-for="Input.Password" id="Password" class="form-control input-with-icon-padding" autocomplete="new-password" />
+                        <span asp-validation-for="Input.Password" class="text-danger"></span>
+                        <label asp-for="Input.Password" class="form-label">Password</label>
+                        <span class="password-toggle-icon" data-target="Password" title="Show password">
+                            <i class="fa fa-eye" aria-hidden="true"></i>
+                        </span>
+                    </div>
+
+                    <div class="pw-box hidden" id="pwBox" aria-live="polite">
+                        <ul class="pw-list">
+                            <li data-rule="len">6+ characters</li>
+                            <li data-rule="upper">Uppercase letter</li>
+                            <li data-rule="lower">Lowercase letter</li>
+                            <li data-rule="digit">Number</li>
+                            <li data-rule="special">Special character</li>
+                        </ul>
+                    </div>
+                    <p id="matchMsg" class="small mb-0"></p>
+                </div>
+
+                <div class="position-relative mb-3">
+                    <div class="form-floating">
+                        <input asp-for="Input.ConfirmPassword" id="ConfirmPassword" class="form-control input-with-icon-padding" autocomplete="new-password" />
+                        <span asp-validation-for="Input.ConfirmPassword" class="text-danger validation-spacer"></span>
+                        <label asp-for="Input.ConfirmPassword" class="form-label">Confirm Password</label>
+                        <span class="password-toggle-icon" data-target="ConfirmPassword" title="Show password">
+                            <i class="fa fa-eye" aria-hidden="true"></i>
+                        </span>
+                    </div>
+                </div>
+                @if (User.IsInRole(SD.AdminRole))
+                {
+                    <div class="py-2">
+                        <div class="col-9">
+                            @Html.DropDownListFor(
+                            m => m.Input.SelectedUserRole,
+                                                Model.UserRoleList,
+                                                " - Please select a User Role - ",
+                                                new { @class = "form-control selectpicker", @id = "ddlUserRoles", data_live_search = "true" }
+                                                )
+                    </div>
+                    <span asp-validation-for="Input.SelectedUserRole" class="text-danger"></span>
+                </div>
+                }
+                <div class="py-2">
+                    <button type="submit" class="w-100 btn btn-lg btn-primary">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(function () {
+          const $status = $("#ddlStatuses");
+          const $branchWrap = $("#branchWrapper");
+          const $rankWrap = $("#rankWrapper");
+
+          function toggleDropdowns() {
+            const txt = ($status.find("option:selected").text() || "").toLowerCase();
+            const isCivilian = txt.includes("civilian");
+
+            $branchWrap.toggle(!isCivilian);
+            $rankWrap.toggle(!isCivilian);
+          }
+
+          $status.on("change", toggleDropdowns);
+          toggleDropdowns();
+        });
+    </script>
+
+    <script>
+        (function () {
+          const pw   = document.getElementById('Password');          
+          const pw2  = document.getElementById('ConfirmPassword');   
+          const box  = document.getElementById('pwBox');
+          if (!pw || !pw2 || !box) return;
+
+          const li = (name) => box.querySelector(`li[data-rule="${name}"]`);
+
+          const rules = {
+            len:    v => v.length >= 6,
+            upper:  v => /[A-Z]/.test(v),
+            lower:  v => /[a-z]/.test(v),
+            digit:  v => /\d/.test(v),
+            special:v => /[^A-Za-z0-9]/.test(v),
+            match:  v => v.length > 0 && v === pw2.value
+          };
+
+          const setState = (name, ok) => {
+            const el = li(name);
+            if (!el) return;
+            el.classList.toggle('ok',  ok);
+            el.classList.toggle('bad', !ok);
+          };
+
+          let t = null;
+          function validate() {
+            const v = pw.value || '';
+            for (const k in rules) setState(k, rules[k](v));
+            const allGood = Object.keys(rules).every(k => rules[k](v));
+            pw.setCustomValidity(allGood ? '' : 'Password does not meet the requirements.');
+            pw2.setCustomValidity((pw2.value && pw2.value !== v) ? 'Passwords do not match.' : '');
+          }
+
+          function schedule() {
+            clearTimeout(t);
+            t = setTimeout(validate, 120);
+          }
+
+          function showIfNeeded() {
+            const shouldShow = document.activeElement === pw || document.activeElement === pw2 || pw.value.length > 0 || pw2.value.length > 0;
+            box.classList.toggle('hidden', !shouldShow);
+          }
+
+           
+
+          ['input','keyup','change'].forEach(evt => {
+            pw.addEventListener(evt, schedule);
+            pw2.addEventListener(evt, schedule);
+          });
+          ['focus','blur','input','change'].forEach(evt => {
+            pw.addEventListener(evt, showIfNeeded);
+            pw2.addEventListener(evt, showIfNeeded);
+          });
+
+          ['len','upper','lower','digit','special','match'].forEach(k => setState(k,false));
+          showIfNeeded();
+        })();
+
+        // --- START Password Visibility Toggle Script (FIXED: Moved inside $(document).ready for reliable binding) ---
+            $(".password-toggle-icon").on("click", function() {
+                const $toggleIcon = $(this); // The span element
+                const targetId = $toggleIcon.data("target");
+                const $targetInput = $("#" + targetId);
+                const $icon = $toggleIcon.find("i");
+
+                // Toggle the input type
+                if ($targetInput.attr("type") === "password") {
+                    $targetInput.attr("type", "text");
+                    $icon.removeClass("fa-eye").addClass("fa-eye-slash"); // Change to closed eye
+                    $toggleIcon.attr("title", "Hide password"); // Update title
+                } else {
+                    $targetInput.attr("type", "password");
+                    $icon.removeClass("fa-eye-slash").addClass("fa-eye"); // Change back to open eye
+                    $toggleIcon.attr("title", "Show password"); // Update title
+                }
+
+                // Optional: refocus the input field after toggling
+                $targetInput.focus();
+            });
+            // --- END Password Visibility Toggle Script ---
+    </script>
+
+
+}
+
+<style>
+    .hidden {
+        display: none
+    }
+
+    .pw-box {
+        margin-top: .5rem;
+        font-size: .9rem
+    }
+
+    .pw-list {
+        list-style: none;
+        padding-left: 0;
+        margin: 0
+    }
+
+        .pw-list li {
+            margin: 2px 0
+        }
+
+            .pw-list li.ok::before {
+                content: "✓ ";
+            }
+
+            .pw-list li.bad::before {
+                content: "• ";
+            }
+
+            .pw-list li.ok {
+                opacity: .8
+            }
+
+            .pw-list li.bad {
+                opacity: 1
+            }
+
+    .password-container, .position-relative {
+        position: relative;
+    }
+
+    .form-floating .input-with-icon-padding {
+        position: relative;
+        padding-right: 40px !important;
+    }
+
+    .password-toggle-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        z-index: 4; 
+        color: #6c757d;
+        padding: 5px;
+        line-height: 1;
+        pointer-events: all;
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+
+        .password-toggle-icon:hover {
+            color: #007bff;
+        }
+
+</style>

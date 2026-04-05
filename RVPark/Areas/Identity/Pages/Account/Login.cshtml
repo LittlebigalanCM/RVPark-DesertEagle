@@ -1,0 +1,121 @@
+﻿@page
+@model LoginModel
+
+@{
+    ViewData["Title"] = "Log In";
+}
+
+<h1 class="text-center">@ViewData["Title"]</h1>
+@if (!string.IsNullOrEmpty(Model.ReturnUrl) && Model.ReturnUrl.Contains("Reservation", StringComparison.OrdinalIgnoreCase))
+{
+    <div class="d-flex justify-content-center">
+        <div class="alert alert-info col-md-8">Please log in or register to continue with your reservation.</div>
+    </div>
+}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <section>
+            <form id="account" method="post">
+                <h2 class="text-center">Please login or register a new user!</h2>
+                <hr />
+                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                    <label asp-for="Input.Email" class="form-label">Email</label>
+                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                </div>
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Password" id="Password" class="form-control input-with-icon-padding" autocomplete="current-password" aria-required="true" placeholder="password" />
+                    <label asp-for="Input.Password" class="form-label">Password</label>
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                    <span class="password-toggle-icon" data-target="Password" title="Show password">
+                        <i class="fa fa-eye" aria-hidden="true"></i>
+                    </span>
+                </div>
+                <div class="checkbox mb-3">
+                    <label asp-for="Input.RememberMe" class="form-label">
+                        <input class="form-check-input" asp-for="Input.RememberMe" />
+                        @Html.DisplayNameFor(m => m.Input.RememberMe)
+                    </label>
+                </div>
+                <div>
+                    <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                </div>
+                <div>
+                    <p>
+                        <a id="forgot-password" asp-page="./ForgotPassword">Forgot your password?</a>
+                    </p>
+                    <p>
+                        <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Register as a new user</a>
+                    </p>
+                    <p>
+                        <a id="resend-confirmation" asp-page="./ResendEmailConfirmation">Resend email confirmation</a>
+                    </p>
+                </div>
+            </form>
+        </section>
+    </div>
+    @* <div class="col-md-6 col-md-offset-2">
+        <!-- External login section (optional) -->
+    </div> *@
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(".password-toggle-icon").on("click", function() {
+            const $toggleIcon = $(this);
+            const targetId = $toggleIcon.data("target");
+            const $targetInput = $("#" + targetId);
+            const $icon = $toggleIcon.find("i");
+
+            if ($targetInput.attr("type") === "password") {
+                $targetInput.attr("type", "text");
+                $icon.removeClass("fa-eye").addClass("fa-eye-slash");
+                $toggleIcon.attr("title", "Hide password");
+            } else {
+                $targetInput.attr("type", "password");
+                $icon.removeClass("fa-eye-slash").addClass("fa-eye");
+                $toggleIcon.attr("title", "Show password");
+            }
+
+            $targetInput.focus();
+        });
+    </script>
+}
+
+
+<style>
+    .position-relative {
+        position: relative;
+    }
+
+    .form-floating .input-with-icon-padding {
+        padding-right: 40px !important;
+    }
+
+    .form-floating {
+        position: relative;
+    }
+
+    .password-toggle-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        z-index: 4; 
+        color: #6c757d;
+        padding: 5px;
+        line-height: 1;
+        pointer-events: all;
+        height: 100%; 
+        display: flex;
+        align-items: center;
+    }
+
+        .password-toggle-icon:hover {
+            color: #007bff; 
+        }
+
+</style>

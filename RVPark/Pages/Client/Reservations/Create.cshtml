@@ -1,0 +1,952 @@
+@page
+@using Infrastructure.Utilities
+@model RVPark.Pages.Client.Reservations.CreateModel
+@{
+    ViewData["Title"] = "Make a Reservation";
+}
+
+<form method="post">
+    <div class="container">
+        <div class="row px-2 mx-2 backgroundWhite border">
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <div class="col-12 px-3" style="border-bottom:1px solid #325d88">
+                <h2 class="text-primary">Create New Reservation</h2>
+            </div>
+            <!-- Customer Selection -->
+            <div class="form-group row mb-3">
+                <div class="col-sm-4">
+                    <h5>
+                        <label>Customer</label>
+                    </h5>
+                </div>
+                <div class="col-sm-8">
+                    @Html.DropDownListFor(m => m.Reservation.UserId, new List<SelectListItem> { Model.UserItem }, new { @class = "form-control", @id = "userDropdown", @readonly = "true" })
+                    @Html.HiddenFor(m => m.Reservation.UserId, Model.UserItem)
+                    <span class="text-danger" asp-validation-for="Reservation.UserId"></span>
+                </div>
+            </div>
+
+            <!-- Dates Section -->
+            <div class="form-group row mb-3">
+                <div class="col-sm-4">
+                    <h5>
+                        <label asp-for="Reservation.StartDate">Check-in Date</label>
+                    </h5>
+                </div>
+                <div class="col-sm-8">
+                    <input type="date" class="form-control" asp-for="Reservation.StartDate" id="startDate" onkeydown="return false;" />
+                    <span class="text-danger" asp-validation-for="Reservation.StartDate"></span>
+                </div>
+            </div>
+
+            <div class="form-group row mb-3">
+                <div class="col-sm-4">
+                    <h5>
+                        <label asp-for="Reservation.EndDate">Check-out Date</label>
+                    </h5>
+                </div>
+                <div class="col-sm-8">
+                    <input type="date" class="form-control" asp-for="Reservation.EndDate" id="endDate" onkeydown="return false;" />
+                    <span class="text-danger" asp-validation-for="Reservation.EndDate"></span>
+                </div>
+            </div>
+
+            <!-- Site Type Selection -->
+            <div class="form-group row mb-3">
+                <div class="col-sm-4">
+                    <h5>
+                        <label>Site Types</label>
+                    </h5>
+                    <p class="text-info">Wagon Wheel Pull-through sites are available by phone reservation only. Please call to book these premium sites.</p>
+                </div>
+                <div class="col-sm-8">
+                    <div id="siteTypeCheckboxes">
+                        @foreach (var siteType in Model.SiteTypes
+                                                .Where(st => st.SiteTypeId != 5 && st.SiteTypeId != 6)
+                                                .OrderBy(st => st.SiteTypeId == 4 ? 1 : 0)
+                                                .ThenBy(st => st.SiteTypeId))
+                        {
+                            if (siteType.SiteTypeId != 5 && siteType.SiteTypeId != 6) // Exclude Short Term Storage and Wagon Wheel
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input site-type-checkbox" type="checkbox" value="@siteType.SiteTypeId" id="siteType_@siteType.SiteTypeId" checked="@(siteType.SiteTypeId == 3)" />
+                                    <label class="form-check-label" for="siteType_@siteType.SiteTypeId">
+                                        @siteType.Name <span class="text-success font-weight-bold">($@Model.SiteTypePrices.GetValueOrDefault(siteType.SiteTypeId, 50.0m).ToString("F2")/night)</span>
+                                    </label>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Handicapped Filter -->
+            <div class="form-group row mb-3">
+                <div class="col-sm-4">
+                    <h5>
+                        <label>Show Handicapped Sites</label>
+                    </h5>
+                </div>
+                <div class="mt-auto mb-auto col-sm-8">
+                    <input type="checkbox" id="showHandicapped" />
+                    <label for="showHandicapped">Include Handicapped-Accessible Sites</label>
+                </div>
+            </div>
+
+            <!-- Trailer Length -->
+            <div class="form-group row mb-3" id="trailerLengthSection">
+                <div class="col-sm-4">
+                    <h5>
+                        <label asp-for="Reservation.TrailerLength">Trailer Length (in feet)</label>
+                    </h5>
+                </div>
+                <div class="col-sm-8">
+                    <input class="form-control" asp-for="Reservation.TrailerLength" id="trailerLength" />
+                    <span class="text-danger" asp-validation-for="Reservation.TrailerLength"></span>
+                </div>
+            </div>
+
+            <!-- Find Available Sites Button -->
+            <div class="form-group row mb-3">
+                <div class="col-sm-12 d-flex gap-3">
+                    <button type="button" class="btn btn-primary w-100" id="findAvailableSites" data-bs-toggle="modal" data-bs-target="#siteMapModal" disabled>
+                        Check Availability
+                    </button>
+                    <a asp-page="/Client/Sites/Index" class="btn btn-secondary w-100">Browse All Sites</a>
+                </div>
+            </div>
+
+            <!-- Handicapped Site Message -->
+            <div class="form-group row mb-3" id="handicappedMessage" style="display: none;">
+                <div class="col-sm-8 offset-sm-4">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Reserved for our Wounded Warriors: 
+                        You have selected a handicapped-accessible site. 
+                        Please ensure you require this accommodation as these sites are reserved for those with accessibility needs.
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- PCS orders Message -->
+            <div class="form-group row mb-3" id="PCSMessage" style="display: none;">
+                <div class="col-sm-8 offset-sm-4">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Your reservation is over 180 days. 
+                        To be able to stay this long, you will need to provide proof of PCS orders so that we can accomodate you.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- SVG Map Modal -->
+    <div class="modal fade" id="siteMapModal" tabindex="-1" aria-labelledby="siteMapModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="siteMapModalLabel"><i class="fas fa-map-marked-alt"></i> Select a Campsite</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background-color: lightgrey">
+                    <div class="map-container">
+                        <!-- Colorblind Mode Toggle - Top Right -->
+                        <div class="colorblind-toggle-top">
+                            <label for="colorblind-mode-toggle">Colorblind Mode</label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="colorblind-mode-toggle" />
+                                <span class="toggle-slider"></span>
+                            </div>
+                            <p style="font-size: .75em">(use scroll wheel to zoom)</p>
+                        </div>
+
+                        <!-- Map Controls -->
+                        <div class="map-controls d-flex justify-content-between align-items-center mb-2">
+                            <h4 class="mb-0">RV Park Layout</h4>
+
+                            <!-- Legend only -->
+                            <div class="legend">
+                                <div class="legend-item">
+                                    <div class="legend-color legend-available" style="background-color: var(--accent-color);"></div>
+                                    <span>Available</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color legend-unavailable" style="background-color: var(--secondary-color)"></div>
+                                    <span>Unavailable</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color legend-selected" style="background-color: var(--gold-accent);"></div>
+                                    <span>Selected</span>
+                                </div>
+                            </div>
+
+                            <button id="zoom-out-btn" class="btn btn-primary btn-sm" disabled title="Reset map to full view">
+                                <i class="fas fa-search-minus"></i> Reset Zoom
+                            </button>
+                        </div>
+
+                        <!-- SVG Map -->
+                        <div id="svg-map" class="svg-map">
+                            Loading map...
+                        </div>
+                        <div class="site-tooltip" id="site-tooltip"></div>
+                    </div>
+                    <!-- Mini Map -->
+                    <div id="mini-map-container">
+                        <svg id="mini-map" width="100%" height="100%"></svg>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="document.getElementById('continueButton').click()">Confirm Selection</button>
+                    <button type="button" id="continueButton" hidden></button>
+                </div>
+            </div>
+        </div>
+        <input id="chosenSiteId" type="hidden" asp-for="Reservation.SiteId" />
+        <input id="resStatus" type="hidden" asp-for="Reservation.ReservationStatus" />
+    </div>
+</form>
+
+<!-- Need Help? Modal -->
+<div class="modal fade" id="builderHelpModal" tabindex="-1" aria-labelledby="builderHelpModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="builderHelpModalLabel">How to Create a Reservation</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<ol class="mb-3">
+					<li class="mb-2">
+						You must be logged in to create an account.
+					</li>
+					<li class="mb-2">
+						Select <strong>check-in</strong> and <strong>check-out</strong> dates.
+					</li>
+					<li class="mb-2">
+						Select site types to search for, select handicapped accessiblity (if applicable)
+					</li>
+					<li class="mb-2">
+						Enter your trailer length (if applicable).
+					</li>
+					<li class="mb-2">
+						Select 'Check Availability' to view the site map.
+					</li>
+					<li>
+						Select a site and continue to complete your reservation.
+					</li>
+				</ol>
+
+				<p class="mb-1"><strong>Note:</strong></p>
+				<ul>
+					<li>Wagon Wheel Pull-through sites are available by phone reservation only. Please call to book these premium sites.</li>
+				</ul>
+			</div>
+			<div class="modal-footer">
+				<button class="btn btn-primary" data-bs-dismiss="modal">Got it</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/css/bootstrap-select.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/siteMap.js?v=@DateTime.Now.Ticks"></script>
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(document).ready(function () {
+            const rvSiteTypeIds = [1, 2, 3, 7]; // Premium Pull-Through, Premium Back-In, Standard, Partial Hookup
+            const tentSiteTypeId = 4; // Tent/Overflow
+            const standardSiteTypeId = 3; // Standard (45ft limit)
+            let isProgrammaticChange = false;
+
+            $('#resStatus').val("@SD.UpcomingReservation");
+            // Initialize with all but Tent/Overflow checked by default
+            function initializeDefaultSelections() {
+                if (!$("#bookPastYes").is(':checked')) {
+                    // Check all checkboxes first
+                    $('.site-type-checkbox').prop('checked', true);
+                    // Uncheck Tent/Overflow by default
+                    $('#siteType_4').prop('checked', false);
+                }
+                initializeTrailerLengthVisibility();
+                updateValidationMessages();
+            }
+
+            window.onSiteSelected = function(siteId) {
+                console.log('onSiteSelected called with siteId:', siteId);
+                if (siteId && $('#chosenSiteId').val() !== siteId && !isProgrammaticChange) {
+                    isProgrammaticChange = true;
+                    $('#chosenSiteId').val(siteId).trigger('change');
+                }
+            };
+
+
+            // Initialize visibility based on radio button state
+            function initializeSections() {
+                const bookPast = $("#bookPastYes").is(':checked');
+                $("#pastSiteSelection").toggle(bookPast);
+                $("#newSiteSelection").toggle(!bookPast);
+                if (!bookPast) {
+                    initializeDefaultSelections();
+                }
+                initializeTrailerLengthVisibility();
+                validateForm();
+            }
+
+            // Initialize trailer length visibility
+            function initializeTrailerLengthVisibility() {
+                    const hasRvChecked = $('.site-type-checkbox:checked').toArray()
+                        .some(cb => rvSiteTypeIds.includes(parseInt($(cb).val())));
+                    const showHandicapped = $('#showHandicapped').is(':checked');
+
+                    // Show trailer length section if RV types are selected or handicapped filter is checked
+                    const shouldShowTrailerLength = hasRvChecked || showHandicapped;
+                    $('#trailerLengthSection').toggle(shouldShowTrailerLength);
+
+                    // Only clear trailer length if no RV types and handicapped filter is off
+                    if (!hasRvChecked && !showHandicapped) {
+                        $('#trailerLength').val('');
+                        console.log('Cleared trailer length because no RV types selected and handicapped filter off');
+                    }
+
+                updateFindButtonState();
+                updateValidationMessages();
+            }
+
+            function updateFindButtonState() {
+                    const selectedSiteTypes = $('.site-type-checkbox:checked').map(function () {
+                        return parseInt($(this).val());
+                    }).get();
+                    const hasAnyChecked = selectedSiteTypes.length > 0;
+                    const hasRvChecked = selectedSiteTypes.some(id => [1, 2, 3, 7].includes(id));
+                    const hasTentChecked = selectedSiteTypes.includes(4);
+                    const showHandicapped = $('#showHandicapped').is(':checked');
+
+                    const trailerLength = parseFloat($('#trailerLength').val());
+                    const trailerValid = $('#trailerLength').valid();
+
+                    const needsTrailerLength = (hasRvChecked || (selectedSiteTypes.length === 0 && showHandicapped)) && !hasTentChecked;
+
+                    const trailerLengthIsValid = !needsTrailerLength || (trailerLength > 0 && trailerValid);
+
+                    const isValid = hasAnyChecked && trailerLengthIsValid;
+                    $('#findAvailableSites').prop('disabled', !isValid);
+            }
+
+                    function updateValidationMessages() {
+            $('.validation-message').remove();
+
+            const today = new Date().toISOString().split('T')[0];
+            // Block past dates on page load
+            $('#startDate').attr('min', today);
+            $('#endDate').attr('min', today);
+            // Update endDate.min when startDate changes
+            $('#startDate').on('change', function () {
+                const selectedStart = new Date($(this).val());
+                selectedStart.setDate(selectedStart.getDate() + 1); // End date must be at least one day after start date
+                const minEndDate = selectedStart.toISOString().split('T')[0];
+                $('#endDate').attr('min', minEndDate);
+            });
+
+            const bookPast = $("#bookPastYes").is(':checked');
+            if (bookPast) return; // No validation messages for past bookings
+
+            const hasRvChecked = $('.site-type-checkbox:checked').toArray()
+                .some(cb => rvSiteTypeIds.includes(parseInt($(cb).val())));
+            const hasTentChecked = $('#siteType_' + tentSiteTypeId).is(':checked');
+            const trailerLength = parseFloat($('#trailerLength').val()) || 0;
+            const hasStandardChecked = $('#siteType_' + standardSiteTypeId).is(':checked');
+
+            // Show standard site restriction message
+            if (trailerLength > 45 && !hasStandardChecked) {
+                $('#siteType_' + standardSiteTypeId).closest('.form-check').append(
+                    '<div class="validation-message text-warning ms-4"><small>Standard sites limited to 45 ft trailers</small></div>'
+                );
+            }
+
+            // Show tent restriction message
+            if (trailerLength > 0 && !hasTentChecked) {
+                $('#siteType_' + tentSiteTypeId).closest('.form-check').append(
+                    '<div class="validation-message text-warning ms-4"><small>Tent sites not suitable for trailers</small></div>'
+                );
+            }
+        } //end updateValidationMessages()
+
+            function enforceCheckboxRules(clickedCheckbox = null) {
+                if (isProgrammaticChange || $("#bookPastYes").is(':checked')) return;
+
+                const clickedValue = clickedCheckbox ? parseInt($(clickedCheckbox).val()) : null;
+                const clickedIsChecked = clickedCheckbox ? $(clickedCheckbox).is(':checked') : false;
+                const trailerLength = parseFloat($('#trailerLength').val()) || 0;
+
+                const tentChecked = $('#siteType_' + tentSiteTypeId).is(':checked');
+                const rvChecked = $('.site-type-checkbox:checked').toArray()
+                    .some(cb => rvSiteTypeIds.includes(parseInt($(cb).val())));
+
+                isProgrammaticChange = true;
+
+                // If tent was just clicked and checked, uncheck all RV types, clear trailer length, and uncheck handicapped
+                if (clickedValue === tentSiteTypeId && clickedIsChecked) {
+                    rvSiteTypeIds.forEach(typeId => {
+                        $('#siteType_' + typeId).prop('checked', false);
+                    });
+                    $('#trailerLength').val('');
+                    $('#showHandicapped').prop('checked', false);
+                    console.log('Tent checked: unchecked all RV types, cleared trailer length, and unchecked handicapped');
+                }
+                // If an RV type was just clicked and checked, uncheck tent
+                else if (rvSiteTypeIds.includes(clickedValue) && clickedIsChecked) {
+                    $('#siteType_' + tentSiteTypeId).prop('checked', false);
+                    console.log('RV type checked: unchecked tent');
+                }
+
+                // If trailer length entered, uncheck tent and handicapped
+                if (trailerLength > 0) {
+                    // If trailer length entered, uncheck tent
+                    if ($('#siteType_' + tentSiteTypeId).is(':checked')) {
+                        $('#siteType_' + tentSiteTypeId).prop('checked', false);
+                        $('#showHandicapped').prop('checked', false);
+                        console.log('Trailer length entered: unchecked tent and handicapped');
+                    }
+
+                    // If trailer > 45ft, uncheck standard
+                    if (trailerLength > 45 && $('#siteType_' + standardSiteTypeId).is(':checked')) {
+                        $('#siteType_' + standardSiteTypeId).prop('checked', false);
+                        console.log('Trailer length > 45ft: unchecked standard');
+                    }
+                }
+
+                isProgrammaticChange = false;
+
+                // Update
+                initializeTrailerLengthVisibility();
+            }
+
+            // Handle past/new site selection toggle
+            function pastReservation() {
+                const bookPast = $("#bookPastYes").is(':checked');
+                $("#pastSiteSelection").toggle(bookPast);
+                $("#newSiteSelection").toggle(!bookPast);
+
+                if (bookPast) {
+                    fetchAvailablePreviousSites();
+                } else {
+                    initializeDefaultSelections();
+                    fetchAvailableSites();
+                }
+
+                if (window.deselectSite) {
+                    window.deselectSite();
+                }
+                $('#handicappedMessage').hide();
+                validateForm();
+            }
+
+            // Fetch available previous sites
+            async function fetchAvailablePreviousSites() {
+                const userId = $('#userDropdown').val();
+                const startDate = $('#startDate').val();
+                const endDate = $('#endDate').val();
+
+                if (!userId || !startDate || !endDate) {
+                    updateSiteDropdown([], '#prevSiteDropdown');
+                    return;
+                }
+
+                try {
+                    const response = await $.ajax({
+                        url: `/api/Reservation/GetAvailablePreviousSites?userId=${userId}&startDate=${startDate}&endDate=${endDate}`,
+                        method: 'GET',
+                        dataType: 'json'
+                    });
+
+                    let filteredSites = response.sites.filter(site => site.siteTypeId !== 5 && site.siteTypeId !== 6);
+
+                    window.siteData = {};
+                    filteredSites.forEach(site => {
+                        window.siteData[site.name] = {
+                            siteId: site.siteId.toString(),
+                            name: site.name,
+                            trailerMaxSize: site.trailerMaxSize,
+                            siteType: site.siteType,
+                            siteTypeId: site.siteTypeId,
+                            pricePerDay: site.pricePerDay,
+                            isHandicappedAccessible: site.isHandicappedAccessible
+                        };
+                    });
+
+                    updateSiteDropdown(filteredSites, '#prevSiteDropdown');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('siteMapModal'));
+                    if (modal && modal._isShown) {
+                        updateMap(filteredSites, 0);
+                    }
+                    getMaxTrailerSize();
+                } catch (error) {
+                    console.error('Error fetching previous sites:', error);
+                    updateSiteDropdown([], '#prevSiteDropdown');
+                }
+            }
+
+            // Get max trailer size for previous site
+            function getMaxTrailerSize() {
+                const siteId = $('#prevSiteDropdown').val();
+                if (siteId) {
+                    $.ajax({
+                        url: `/api/Site/GetSiteTrailerSize?siteId=${siteId}`,
+                        type: 'GET',
+                        success: function (response) {
+                            $('#prevSite_trailerLengthSection').toggle(response > 0);
+                        },
+                        error: function () {
+                             Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Error fetching site trailer size. Please try again.',
+                            });
+                            $('#prevSite_trailerLengthSection').hide();
+                        }
+                    });
+                } else {
+                    $('#prevSite_trailerLengthSection').hide();
+                }
+            }
+
+        // Fetch available sites for new selection
+        async function fetchAvailableSites() {
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+            const trailerLength = $('#trailerLength').val() || '';
+            const selectedSiteTypes = $('.site-type-checkbox:checked').map(function() {
+                return parseInt($(this).val());
+            }).get();
+            const showHandicapped = $('#showHandicapped').is(':checked') ?? true;
+
+            try {
+                const response = await $.ajax({
+                    url: `/api/Reservation/GetAvailableSites?startDate=${startDate}&endDate=${endDate}&siteTypeIds=${selectedSiteTypes.join(',')}&trailerLength=${trailerLength}`,
+                    method: 'GET',
+                    dataType: 'json'
+                });
+
+                let filteredSites = response.sites.filter(site => site.siteTypeId !== 5); // Exclude Short Term Storage
+                if (!showHandicapped) {
+                    filteredSites = filteredSites.filter(site => !site.isHandicappedAccessible);
+                }
+
+                window.siteData = {};
+                filteredSites.forEach(site => {
+                    window.siteData[site.name] = {
+                        siteId: site.siteId.toString(),
+                        name: site.name,
+                        trailerMaxSize: site.trailerMaxSize,
+                        siteType: site.siteType,
+                        siteTypeId: site.siteTypeId,
+                        pricePerDay: site.pricePerDay,
+                        isHandicappedAccessible: site.isHandicappedAccessible || false
+                    };
+                });
+
+                const modal = bootstrap.Modal.getInstance(document.getElementById('siteMapModal'));
+                if (modal && modal._isShown) {
+                    updateMap(filteredSites, parseFloat(trailerLength) || 0);
+                }
+            } catch (error) {
+                console.error('Error fetching available sites:', error);
+            }
+        }
+
+
+            // Date change handlers
+            $('#startDate').change(function () {
+                const startDate = $(this).val();
+                if (startDate) {
+                    const checkInDate = new Date(startDate);
+                    const checkOutDate = new Date(checkInDate);
+                    checkOutDate.setDate(checkInDate.getDate() + 7);
+                    $('#endDate').val(checkOutDate.toISOString().split('T')[0]);
+                }
+                pastReservation();
+                validateForm();
+            });
+
+            $('#endDate').change(function () {
+                pastReservation();
+                validateForm();
+            });
+
+            // Checkbox change handlers
+            $('.site-type-checkbox').change(function () {
+                if (!isProgrammaticChange) {
+                    console.log('Checkbox changed:', $(this).val(), 'checked:', $(this).is(':checked'));
+                    enforceCheckboxRules(this);
+                    fetchAvailableSites();
+                    validateForm();
+
+                    $('#trailerLength').valid();
+                    updateFindButtonState();
+                }
+            });
+
+            // Trailer length handlers
+            $('#trailerLength').on('input', function () {
+                // Remove trailer length validation message when user starts typing
+                $('.trailer-length-validation').remove();
+
+                const trailerLength = parseFloat($(this).val()) || 0;
+                console.log('Trailer length input:', trailerLength);
+                let errorContainer = $('#trailerLengthError');
+                if (errorContainer.length === 0) {
+                    $(this).after('<div id="trailerLengthError" class="trailer-length-validation text-danger mt-1"></div>');
+                    errorContainer = $('#trailerLengthError');
+                }
+
+
+
+                if (trailerLength > 0) {
+                    isProgrammaticChange = true;
+
+                    // If trailer length entered, uncheck tent
+                    if ($('#siteType_' + tentSiteTypeId).is(':checked')) {
+                        $('#siteType_' + tentSiteTypeId).prop('checked', false);
+                        $('#showHandicapped').prop('checked', false);
+                        console.log('Trailer length entered: unchecked tent and handicapped');
+                    }
+
+                    // If trailer > 45ft, uncheck standard
+                    if (trailerLength > 45 && $('#siteType_' + standardSiteTypeId).is(':checked')) {
+                        $('#siteType_' + standardSiteTypeId).prop('checked', false);
+                        console.log('Trailer length > 45ft: unchecked standard');
+                    }
+                    // Validation: negative or too large
+                    if (trailerLength < 0) {
+                        errorContainer.text('No negative numbers allowed.');
+                        $('#findAvailableSites').prop('disabled', true);
+                        return;
+                    } else if (trailerLength > 70) {
+                        errorContainer.text('Maximum accommodating RV size is 70 ft.');
+                        $('#findAvailableSites').prop('disabled', true);
+                        return;
+                    }
+                    isProgrammaticChange = false;
+                    initializeTrailerLengthVisibility();
+                } else {
+                    // When trailer length is cleared, update validation messages
+                    updateValidationMessages();
+                }
+
+                // Debounce
+                clearTimeout(window.trailerLengthTimeout);
+                window.trailerLengthTimeout = setTimeout(() => {
+                    fetchAvailableSites();
+                    validateForm();
+
+                    $('#trailerLength').valid();
+                    updateFindButtonState();
+                }, 500);
+            });
+
+            $('#trailerLength').on('change', function () {
+                enforceCheckboxRules();
+                fetchAvailableSites();
+                validateForm();
+            });
+
+            // Handicapped filter
+            $('#showHandicapped').change(function () {
+                // If handicapped is checked and tent is selected, uncheck tent
+                if ($(this).is(':checked') && $('#siteType_' + tentSiteTypeId).is(':checked')) {
+                    isProgrammaticChange = true;
+                    $('#siteType_' + tentSiteTypeId).prop('checked', false);
+                    console.log('Handicapped checked: unchecked tent');
+                    isProgrammaticChange = false;
+                }
+
+                // Update trailer length visibility when handicapped filter changes
+                initializeTrailerLengthVisibility();
+                fetchAvailableSites();
+                validateForm();
+
+                $('#trailerLength').valid();
+                updateFindButtonState();
+            });
+
+            // Handle find available sites button
+            $('#findAvailableSites').click(function () {
+                const userId = $('#userDropdown').val();
+                const startDate = $('#startDate').val();
+                const endDate = $('#endDate').val();
+                const selectedSiteTypes = $('.site-type-checkbox:checked').map(function () {
+                    return parseInt($(this).val());
+                }).get();
+
+                if (!userId || !startDate || !endDate) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Missing Fields',
+                        text: 'Please fill in all required fields.',
+                    });
+                    return;
+                }
+
+                if (selectedSiteTypes.length === 0 && !$("#bookPastYes").is(':checked') && !$('#showHandicapped').is(':checked')) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'No Site Type Selected',
+                        text: 'Please select at least one site type.',
+                    });
+                    return;
+                }
+
+                if (window.deselectSite) {
+                    console.log('Deselecting site on findAvailableSites click');
+                    window.deselectSite();
+                }
+                window.isCheckAvailabilityTriggered = true;
+                fetchAvailableSites();
+                $('#handicappedMessage').hide();
+                console.log('Handicapped message hidden on findAvailableSites click');
+            });
+
+            // Handle form submission
+
+
+            // Update handicapped message
+            function updateHandicappedMessage(siteId) {
+                const handicappedMessage = $('#handicappedMessage');
+                if (!siteId) {
+                    handicappedMessage.hide();
+                    console.log('No site selected, hiding handicapped message');
+                    return;
+                }
+
+                // Check both window.siteData and local siteData
+                const siteDataToCheck = window.siteData || {};
+                const site = Object.values(siteDataToCheck).find(s => s.siteId.toString() === siteId.toString());
+
+                if (site && site.isHandicappedAccessible) {
+                    console.log(`Showing handicapped message for site: ${site.name}`);
+                    handicappedMessage.show();
+                } else {
+                    console.log(`Hiding handicapped message for siteId: ${siteId}`);
+                    handicappedMessage.hide();
+                }
+            }
+
+            // Form validation
+            function validateForm() {
+                const bookPast = $("#bookPastYes").is(':checked');
+                const startDate = $('#startDate').val();
+                const endDate = $('#endDate').val();
+                const userId = $('#userDropdown').val();
+                const selectedSiteTypes = $('.site-type-checkbox:checked').length;
+                const trailerLength = $('#trailerLength').val();
+                const hasRvChecked = $('.site-type-checkbox:checked').toArray()
+                    .some(cb => rvSiteTypeIds.includes(parseInt($(cb).val())));
+                const hasTentChecked = $('#siteType_4').is(':checked');
+                const showHandicapped = $('#showHandicapped').is(':checked');
+                const siteId = bookPast ? $('#prevSiteDropdown').val() : $('#chosenSiteId').val();
+
+                // Form is valid if:
+                // 1. Has start and end dates and userId
+                // 2. For past bookings: just need a site selected
+                // 3. For new bookings: Either has site types selected or handicapped filter is checked
+                const hasValidSiteSelection = bookPast || selectedSiteTypes > 0 || showHandicapped;
+                const isValid = startDate && endDate && userId && hasValidSiteSelection;
+
+
+                //If the booking is more than 180 days, requires PCS orders to be sent in.
+                //reservation will have to be pending at this point
+                const requiresPCS = (() => {
+                    const startDate = new Date($('#startDate').val()+ 'T00:00:00');
+                    const endDate = new Date($('#endDate').val()+ 'T00:00:00');
+
+                    const diffTime = endDate.getTime() - startDate.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    console.log('PCS check', { startStr, endStr, diffDays });
+                    return diffDays > 180;
+                })();
+
+                //Sweet alert for PCS
+                if(requiresPCS){
+                const result = await Swal.fire({
+                        icon: 'info',
+                        title: 'PCS Orders Required',
+                        text: 'Your reservation is over 180 days. To be able to stay this long, you will need to provide proof of PCS orders so that we can accomodate you. Please confirm that you intend to stay this long and that you will provide the appropriate documentation.',
+                        showCancelButton: true,
+                        confirmButtonText: 'Confirm',
+                        cancelButtonText: 'Change Dates'
+                    });
+
+                    if (!result.isConfirmed) {
+                        console.log('User cancelled PCS confirmation');
+                        return;
+                    }
+                    console.log('User confirmed PCS orders, submitting form');
+                } else {
+                    console.log('PCS orders not required, submitting form');
+                }
+
+                $('#findAvailableSites').prop('disabled', !isValid || bookPast);
+
+                // Always enable continue button if basic requirements are met and a site is selected
+                // Let button handler show validation messages
+                $('#createButton').prop('disabled', !isValid || !siteId || siteId === '');
+
+                console.log('Validation:', {
+                    startDate: !!startDate,
+                    endDate: !!endDate,
+                    requiresPCS,
+                    userId: !!userId,
+                    selectedSiteTypes,
+                    showHandicapped,
+                    hasValidSiteSelection,
+                    hasRvChecked,
+                    trailerLength: !!trailerLength,
+                    hasTentChecked,
+                    bookPast,
+                    isValid
+                });
+
+                updateValidationMessages();
+            }
+
+            // Initialize site type prices
+            window.siteTypePrices = @Html.Raw(Json.Serialize(Model.SiteTypePrices));
+            window.siteData = window.siteData || {};
+
+            // Handle modal events
+            $('#siteMapModal').on('shown.bs.modal', function () {
+                if (!window.siteMapInitialized) {
+                    console.log('Initializing SVG map');
+                    loadSvgMap();
+                    window.siteMapInitialized = true;
+                } else if (Object.keys(window.siteData).length > 0) {
+                    console.log('Updating map with existing siteData');
+                    const trailerLength = $('#trailerLength').val() || 0;
+                    updateMap(Object.values(window.siteData), parseFloat(trailerLength));
+                    const siteId = $('#chosenSiteId').val();
+                    if (siteId) {
+                        updateHandicappedMessage(siteId);
+                    }
+                }
+            });
+
+            $('#siteMapModal').on('hidden.bs.modal', function () {
+                console.log('Modal hidden, resetting siteMapInitialized');
+                window.siteMapInitialized = false;
+                const selectedSiteId = $('#chosenSiteId').val();
+
+                if (selectedSiteId) {
+                    console.log(`Retaining selected siteId: ${selectedSiteId}`);
+                    updateHandicappedMessage(selectedSiteId);
+                } else {
+                    console.log('No site selected, hiding handicapped message');
+                    $('#handicappedMessage').hide();
+                }
+            });
+
+            $('#continueButton').click(async function(e) {
+                e.preventDefault();
+
+                const siteId = $('#chosenSiteId').val();
+                if(!siteId){
+                    console.warn("No siteId found in #chosenSiteId");
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No Site Selected',
+                        text: 'Please select a site before continuing.'
+                    });
+                    return;
+                }
+
+                let selectedSite = Object.values(window.siteData).find(s => s.siteId.toString() === siteId.toString());
+                if (!selectedSite) {
+                    try {
+                        console.log('Fetching site details for siteId:', siteId);
+                        const response = await $.ajax({
+                            url: `/api/Reservation/GetSiteDetails?siteId=${encodeURIComponent(siteId)}`,
+                            method: 'GET',
+                            dataType: 'json'
+                        });
+                        if (response) {
+                            selectedSite = {
+                                siteId: response.siteId.toString(),
+                                name: response.name,
+                                description: response.description,
+                                trailerMaxSize: response.trailerMaxSize,
+                                siteTypeId: response.siteTypeId,
+                                siteType: response.siteTypeName,
+                                pricePerDay: response.pricePerDay,
+                                isHandicappedAccessible: response.isHandicappedAccessible || false
+                            };
+                            window.siteData[response.name] = selectedSite;
+                            console.log('Fetched site details:', selectedSite);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching site details:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Site Data Error',
+                            text: 'Unable to fetch site details. Please try again.',
+                        });
+                        return;
+                    }
+                }
+
+                if (!selectedSite) {
+                    console.error('Selected site data not found for siteId:', siteId);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Site Data Error',
+                        text: 'Selected site data not found. Please try again.',
+                    });
+                    return;
+                }
+
+
+                // Always show SweetAlert for handicapped sites
+                if (selectedSite.isHandicappedAccessible) {
+                    const result = await Swal.fire({
+                        icon: 'info',
+                        title: 'Handicapped-Accessible Site Selected',
+                        text: 'You have selected a handicapped-accessible site. Please confirm you require this accommodation.',
+                        showCancelButton: true,
+                        confirmButtonText: 'Confirm',
+                        cancelButtonText: 'Select Another Site'
+                    });
+
+                    if (!result.isConfirmed) {
+                        console.log('User cancelled handicapped site confirmation');
+                        return;
+                    }
+                    console.log('User confirmed handicapped site, submitting form');
+                } else {
+                    console.log('Non-handicapped site selected, submitting form');
+                }
+
+
+                // Submit the form only after confirmation
+                $(this).closest('form').submit();
+            }); //End continue button click
+
+            $(document).ready(function () {
+                $('#findAvailableSites').prop('disabled', true);
+            });
+
+            // Initialize radio buttons and sections
+            $("#bookPastYes, #bookPastNo").change(pastReservation);
+            initializeSections();
+
+        }); //end document ready
+    </script>
+}

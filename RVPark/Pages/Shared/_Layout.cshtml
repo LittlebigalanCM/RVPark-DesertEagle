@@ -1,0 +1,320 @@
+﻿@using Infrastructure.Utilities
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Desert Eagle RV Park</title>
+
+    <!-- Preload Critical Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- JQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.js"
+            integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4="
+            crossorigin="anonymous"></script>
+    <!-- FOR RELEASE, DELETE BLOCK ABOVE
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+            integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+            crossorigin="anonymous"></script>
+    -->
+
+	<!-- BOOTSTRAP -->
+	<!-- DEV ONLY -->
+	<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+	<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+	<!-- FOR RELEASE
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" rel="stylesheet"
+		  integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+		  crossorigin="anonymous">
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/js/bootstrap.bundle.min.js"
+			integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+			crossorigin="anonymous">
+	</script>
+	-->
+	<!-- FOR Right-Left Languages ONLY!!!!!!!!!!!
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.rtl.min.css"
+		  integrity="sha384-CfCrinSRH2IR6a4e6fy2q6ioOX7O6Mtm1L9vRvFZ1trBncWmMePhzvafv7oIcWiW"
+		  crossorigin="anonymous">
+	-->
+
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/RVPark.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/fontawesome/css/all.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+
+    <!-- Meta Tags for SEO -->
+    <meta name="description" content="Premium RV camping at Desert Eagle RV Park, Nellis Air Force Base. Your home away from home in Las Vegas.">
+    <meta name="keywords" content="RV Park, Camping, Nellis Air Force Base, Las Vegas, Military RV, Desert Eagle">
+</head>
+<body>
+	<header id="top">
+		<nav id="rvpark-nav" class="navbar navbar-expand-lg navbar-light border-bottom box-shadow mb-3">
+			<div class="container">
+				<!-- Brand with improved logo sizing -->
+				<a class="navbar-brand" asp-area="" asp-page="/Index">
+					<img src="~/images/99fsslogo.png" alt="Desert Eagle RV Park Logo" />
+					<span class="d-none d-md-inline">Desert Eagle RV Park</span>
+					<span class="d-md-none">DERVP</span>
+				</a>
+
+				<!-- Mobile menu toggle -->
+				<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
+						aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+					<span class="navbar-toggler-icon"></span>
+				</button>
+
+				<div class="navbar-collapse collapse d-lg-inline-flex justify-content-between">
+					<ul class="navbar-nav flex-grow-1">
+						<!-- Admin Panel - only for authorized users -->
+						@if (User.IsInRole(SD.AdminRole) || User.IsInRole(SD.StaffRole) || User.IsInRole(SD.CampHostRole))
+						{
+							<li class="nav-item dropdown" id="adminDropdownWrapper">
+								<a class="nav-link" asp-area="" asp-page="/Admin/AdminPanel/Index" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+									<i class="fas fa-cog me-1"></i>
+									<span class="d-none d-lg-inline">Admin Panel</span> <!--Says "Admin Panel" on Desktop-->
+									<span class="d-inline d-lg-none">Admin</span> <!--Says "Admin" on Mobile-->
+								</a>
+
+								<ul class="dropdown-menu" aria-labelledby="adminDropdown">
+									<li id="AdminPanelLink" class="d-block d-lg-none"><a class="nav-link" asp-area="" asp-page="/Admin/AdminPanel/Index">Admin Panel</a>
+											<hr>
+									</li>
+									<li><a class="dropdown-item" asp-area="" asp-page="/Admin/Sites/Index">Sites</a></li>
+									<li><a class="dropdown-item" asp-area="" asp-page="/Admin/SiteTypes/Index">Site Types</a></li>
+									<li><a class="dropdown-item" asp-area="" asp-page="/Admin/Photos/Index">Photo Gallery</a></li>
+									<li><hr></li>
+									<li><a class="dropdown-item" asp-area="" asp-page="/Admin/Reservations/Index">Reservations</a></li>
+									<li><a class="dropdown-item" asp-area="" asp-page="/Admin/Transactions/Index">Transactions</a></li>
+									<li><a class="dropdown-item" asp-area="" asp-page="/Admin/Fees/Index">Fees</a></li>
+									<li><hr></li>
+									<li><a class="dropdown-item" asp-area="" asp-page="/Admin/Users/Index">Users</a></li>
+									<li><a class="dropdown-item" asp-area="" asp-page="/Admin/Roles/Index">Roles</a></li>
+									<li><hr></li>
+									<li><a class="dropdown-item" asp-area="" asp-page="/Admin/MilitaryBranches/Index">Military Branches</a></li>
+									<li><a class="dropdown-item" asp-area="" asp-page="/Admin/MilitaryRanks/Index">Military Ranks</a></li>
+									<li><a class="dropdown-item" asp-area="" asp-page="/Admin/MilitaryStatuses/Index">Military Statuses</a></li>
+									<li><hr></li>
+									<li><a class="dropdown-item" asp-area="" asp-page="/Admin/Reports/Index">Generate Reports</a></li>
+								</ul>
+							</li>
+						}
+
+						<!-- Make Reservation - context-aware links -->
+						<li class="nav-item">
+							@if (User.IsInRole(SD.AdminRole) || User.IsInRole(SD.StaffRole) || User.IsInRole(SD.CampHostRole))
+							{
+								<a class="nav-link" asp-area="" asp-page="/Admin/Reservations/Create">
+									<i class="fas fa-calendar-plus me-1"></i>Make Reservation
+								</a>
+							}
+							else
+							{
+								<a class="nav-link" asp-area="" asp-page="/Client/Reservations/Browse">
+									<i class="fas fa-calendar-plus me-1"></i>Make Reservation
+								</a>
+							}
+
+						</li>
+
+						<!-- View Sites -->
+						<li class="nav-item">
+							<a class="nav-link" asp-area="" asp-page="/Client/Sites/Index">
+								<i class="fas fa-map-marked-alt me-1"></i>View Sites
+							</a>
+						</li>
+
+						<!-- Contact
+						<li class="nav-item">
+							<a class="nav-link" asp-area="" asp-page="/Client/Contact/Index">
+								<i class="fas fa-phone me-1"></i>Contact
+							</a>
+						</li> -->
+						<!-- My Reservations and Customer Portal - only for clients -->
+						@if (User.IsInRole(SD.ClientRole))
+						{
+							<li class="nav-item">
+								<a class="nav-link" asp-area="" asp-page="/Client/Reservations/Index">
+									<i class="fas fa-calendar-check me-1"></i>My Reservations
+								</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link" asp-area="" asp-page="/Client/Portal/Index">
+									<i class="fas fa-home me-1"></i>Customer Portal
+								</a>
+							</li>
+						}
+					</ul>
+
+					<!-- Login/User Menu -->
+					<partial name="_LoginPartial" />
+				</div>
+			</div>
+		</nav>
+	</header>
+
+	<!-- Main Content -->
+	<div class="container-fluid px-0">
+		<main role="main" class="pb-3">
+			@RenderBody()
+		</main>
+	</div>
+
+	<!-- Footer moved OUTSIDE of container-fluid -->
+	<footer class="footer">
+		<div class="container">
+			<div class="footer-content">
+				<!-- About Section -->
+				<div class="footer-section">
+					<h5><i class="fas fa-campground me-2"></i>Desert Eagle RV Park</h5>
+					<p>Premium RV camping experience at Nellis Air Force Base, serving military families and civilians with exceptional hospitality and modern amenities.</p>
+				</div>
+
+				<!-- Quick Links -->
+				<div class="footer-section">
+					<h5><i class="fas fa-link me-2"></i>Quick Links</h5>
+					<ul>
+						<li>
+							@if (User.IsInRole(SD.AdminRole) || User.IsInRole(SD.StaffRole) || User.IsInRole(SD.CampHostRole))
+							{
+								<a href="/Admin/Reservations/Create">Make Reservation</a>
+							}
+							else
+							{
+								<a href="/Client/Reservations/Browse">Make Reservation</a>
+							}
+						</li>
+						<li><a href="/Client/Sites/Index">View Sites</a></li>
+						<li><a href="/Client/Contact/Index">Contact Us</a></li>
+						@if (User.IsInRole(SD.AdminRole) || User.IsInRole(SD.StaffRole) || User.IsInRole(SD.CampHostRole))
+						{
+							<li><a href="/Admin/AdminPanel/Index">Admin Panel</a></li>
+						}
+					</ul>
+				</div>
+
+				<!-- Contact Information -->
+				<div class="footer-section">
+					<h5><i class="fas fa-address-card me-2"></i>Contact Info</h5>
+					<ul>
+						<li><i class="fas fa-phone me-2"></i>702-643-3060</li>
+						<li><i class="fas fa-envelope me-2"></i>deserteaglervnellis@gmail.com</li>
+						<li><i class="fas fa-map-marker-alt me-2"></i>4907 Fam Camp Drive, Bldg. 2889</li>
+						<li><i class="fas fa-clock me-2"></i>Mon - Sun: 8:30 AM - 5 PM</li>
+					</ul>
+				</div>
+
+				<!-- Office Hours -->
+				<div class="footer-section">
+					<h5><i class="fas fa-business-time me-2"></i>Office Hours</h5>
+					<ul>
+						<li><i class="fas fa-sign-in-alt me-2"></i>Check-in: 12:00 PM</li>
+						<li><i class="fas fa-sign-out-alt me-2"></i>Check-out: 11:00 AM</li>
+						<li><i class="fas fa-calendar-times me-2"></i>Closed on all holidays</li>
+						<li><i class="fas fa-info-circle me-2"></i>After-hours check-in available</li>
+					</ul>
+				</div>
+			</div>
+
+			<!-- Simplified Footer Bottom -->
+			<div class="footer-bottom">
+				<div class="footer-logo">
+					<a asp-page="/About" title="About Our Team and Project">
+						About Us
+					</a>
+					<span>&copy; 2025 - Desert Eagle RV Park - All Rights Reserved</span>
+				</div>
+				<br>
+				<!--Back to top -->
+				<div>
+					<a href="#top">Back to top</a>
+				</div>
+			</div>
+		</div>
+	</footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+    <!-- DataTables -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/2.3.4/css/dataTables.dataTables.min.css">
+    <script type="text/javascript" src="https://cdn.datatables.net/2.3.4/js/dataTables.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/3.0.7/css/responsive.dataTables.min.css" />
+    <script type="text/javascript" src="https://cdn.datatables.net/responsive/3.0.7/js/dataTables.responsive.min.js"></script>
+
+	<!-- Bootstrap Select -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/css/bootstrap-select.min.css">
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
+
+    <!-- Custom Scripts -->
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+	<!-- Navbar Scroll Effect -->
+	<script>
+		// Add scroll effect to navbar
+		window.addEventListener('scroll', function() {
+			const navbar = document.getElementById('rvpark-nav');
+			if (window.scrollY > 50) {
+				navbar.classList.add('scrolled');
+			} else {
+				navbar.classList.remove('scrolled');
+			}
+		});
+
+		// Add fade-in animation to elements
+		const observerOptions = {
+			threshold: 0.1,
+			rootMargin: '0px 0px -50px 0px'
+		};
+
+		const observer = new IntersectionObserver(function(entries) {
+			entries.forEach(entry => {
+				if (entry.isIntersecting) {
+					entry.target.classList.add('visible');
+				}
+			});
+		}, observerOptions);
+
+		// Observe all elements with fade-in class when page loads
+		document.addEventListener('DOMContentLoaded', function() {
+			document.querySelectorAll('.fade-in').forEach(el => {
+				observer.observe(el);
+			});
+		});
+
+
+		//This section makes it so that when the "Admin Panel" is hovered upon on desktop, it opens up the dropdown"
+		//On mobile, it opens up the dropdown as normal
+		// Add loading state management
+		window.addEventListener('beforeunload', function() {
+			document.body.classList.add('loading');
+		});
+				
+		document.addEventListener('DOMContentLoaded', function () {
+			var adminDropdown = document.getElementById('adminDropdown');
+			var isDesktop = function() {
+				return window.innerWidth >= 992;
+			};
+
+			if (!adminDropdown) return;
+
+			adminDropdown.addEventListener('click', function (e) {
+				if (isDesktop()) {
+					// On desktop, navigate to Admin Panel on click
+					window.location.href = adminDropdown.getAttribute('href');
+					e.preventDefault();
+				}
+				// On mobile, let Bootstrap handle the dropdown
+			});
+		});
+
+	</script>
+
+	@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

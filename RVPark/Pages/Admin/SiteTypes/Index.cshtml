@@ -1,0 +1,227 @@
+﻿@page
+@using ApplicationCore.Models
+@model RVPark.Pages.Admin.SiteTypes.IndexModel
+@inject Infrastructure.Data.ApplicationDbContext _context
+@{
+    ViewData["Title"] = "Site Types";
+
+    var allPrices = _context.Price
+        .Where(p => p.SiteType != null)
+        .OrderByDescending(p => p.StartDate)
+        .ThenBy(p => p.EndDate)
+        .ToList();
+}
+<div class="d-flex justify-content-between align-items-start">
+    <h1 class="text-secondary">Site Types</h1>
+    <div class="d-flex flex-column align-items-end">
+        <a asp-page="Create" class="btn btn-success mb-2">
+            <i class="fas fa-plus"></i> Create New Site Type
+        </a>
+        <a asp-page="/Admin/Prices/Index" class="btn btn-secondary">
+            Price History
+        </a>
+    </div>
+</div>
+
+<!-- Site Types Table -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="my-2"><i class="fa-solid fa-caravan"></i> Site Types</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-page-handler="Search">
+            <div class="row align-items-center gy-2">
+                <div class="col-lg-3 col-md-6">
+                    <input type="text" id="searchSiteTypeInput" class="form-control" placeholder="Search by Site Type Name">
+                </div>
+                <div class="col-lg-3 col-md-6 d-flex justify-content-end gap-2">
+                    <button class="btn btn-primary" type="button" id="searchSiteTypeButton">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <button id="resetSiteTypeSearch" class="btn btn-danger">
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </form>
+        <table class="table table-striped table-bordered" id="siteTypeTable">
+            <thead>
+                <tr>
+                    <th>Site Type Name</th> @* The original was throwing an exception when searching.*@
+                    <th>Current Price</th>
+                    <th>Default Trailer Max (ft)</th>
+                    <th>Price Actions</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.SiteType)
+                {
+                    int counter = 0;
+                    <tr>
+                        <td>
+                            <div class="row">
+                                <div class="col">
+                                    @Html.DisplayFor(modelItem => item.Name)
+                                </div>
+                                <div class="col">
+                                    <a asp-page="./Edit" asp-route-id="@item.SiteTypeId" class="btn btn-sm btn-success">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            @if (Model.SiteTypePrices.ContainsKey(item.SiteTypeId) && Model.SiteTypePrices[item.SiteTypeId] > 0)
+                            {
+                                @string.Format("{0:C}", Model.SiteTypePrices[item.SiteTypeId])
+                            }
+                            else
+                            {
+                                <span class="text-muted">No price set</span>
+                            }
+                        </td>
+                        <td>
+                            @{
+                                double? length = null;
+                                if (Model.SiteTypeTrailerMax.ContainsKey(item.SiteTypeId))
+                                {
+                                    length = Model.SiteTypeTrailerMax[item.SiteTypeId];
+                                }
+                            }
+
+                            @if (length.HasValue)
+                            {
+                                @($"{length} ft")
+                            }
+                            else
+                            {
+                                <span class="text-muted">N/A</span>
+                            }
+                        </td>
+
+                        <td>
+                            <select class="selectpicker">
+                                <option>Price History(View Only)</option>
+                                @foreach (var price in allPrices)
+                                {
+                                    if (item.SiteTypeId == price.SiteTypeId)
+                                    {
+                                        counter++;
+                                        <option>@price.StartDate.ToShortDateString() - @(price.EndDate.HasValue ? price.EndDate.Value.ToShortDateString() : "Ongoing") : @string.Format("{0:C}", price.PricePerDay)</option>
+                                    }
+                                }
+                            </select>
+                            <a asp-page="/Admin/Prices/Create" asp-route-id="@item.SiteTypeId" class="btn btn-sm btn-success">
+                                <i class="fas fa-plus"></i> Add Price
+                            </a>
+                            @if (counter > 1)
+                            {
+                                <a onClick="Revert('/Admin/SiteTypes/Index?handler=RevertPrice&id=@item.SiteTypeId',
+                                            @Model.LatestPrices[item.SiteTypeId].PricePerDay)"
+                                   class="btn btn-danger text-white">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                </a>
+                            }
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                @if (item.IsActive == false)
+                                {
+                                    <form method="post">
+                                        <button asp-route-id="@item.SiteTypeId" asp-page-handler="LockUnlock" class="btn btn-danger" type="submit">
+                                            <i class="fa-solid fa-lock-open"></i> Unlock
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form method="post">
+                                        <button asp-route-id="@item.SiteTypeId" asp-page-handler="LockUnlock" class="btn btn-warning" type="submit">
+                                            <i class="fa-solid fa-lock"></i> Lock
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+          const siteTypeTable =  $('#siteTypeTable').DataTable({
+                "paging": true,
+                "ordering": true,
+                "info": true,
+                "searching": true,
+                "responsive": true,
+                "autoWidth": false,
+                "dom": 'lrtip' //hide built in search bar
+            });
+            //search button
+            $('#searchSiteTypeButton').on('click', function () {
+                const value = $('#searchSiteTypeInput').val();
+                siteTypeTable.search(value).draw();
+            });
+            //adding for enter key.
+            $('#searchSiteTypeInput').on('keypress', function (e) {
+                    if (e.which === 13) {
+                        e.preventDefault();
+                        const value = $(this).val();
+                        dataTable.search(value).draw();
+                    }
+                 });
+            // Reset button
+            $('#resetSiteTypeSearch').on('click', function (e) {
+                 e.preventDefault();
+                $('#searchSiteTypeInput').val('');
+                siteTypeTable.search('').draw();
+            });
+        });
+    </script>
+    <script>
+        function Revert(url,price) {
+            Swal.fire({
+                title: "Are you sure you want to revert the following price?\n$" + price,
+                text: "You will not be able to undo this action!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, revert!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        type: 'POST',
+                        url: url,
+                        headers: {
+                            "RequestVerificationToken": $('input:hidden[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (data) {
+                            console.log(data); // Debug log
+                            if (data.success) {
+                                toastr.success(data.message);+
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 1000);
+                            } else {
+                                toastr.error(data.message);
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            console.error(xhr.responseText);
+                            toastr.error("An error occurred while reverting.");
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+}

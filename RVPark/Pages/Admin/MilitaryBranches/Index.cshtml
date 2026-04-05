@@ -1,0 +1,130 @@
+﻿@page
+@model RVPark.Pages.Admin.MilitaryBranches.IndexModel
+@{
+}
+@{
+    ViewData["Title"] = "Military Branches";
+}
+<div class="d-flex justify-content-between align-items-center">
+    <h1 class="text-secondary">Military Branches</h1>
+    <a href="./MilitaryBranches/Upsert?branchId=0" class="btn btn-success"><i class="fas fa-plus"></i> Create Branch</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="my-2"><i class="fa-solid fa-jet-fighter"></i> Military Branches</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-page-handler="Search">
+            <div class="row align-items-center gy-2">
+                <div class="col-lg-3 col-md-6">
+                    <input type="text" id="searchBranchInput" class="form-control" placeholder="Search for Branch">
+                </div>
+                <div class="col-lg-3 col-md-6 d-flex justify-content-end gap-2">
+                    <button class="btn btn-primary" type="button" id="searchBranchButton">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <button id="resetBranchSearch" class="btn btn-danger">
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </form>
+        <table id="Military_Branch_table" class="table table-striped table-bordered" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Branch Name</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@* Hidden forms for lock/unlock actions *@
+<form id="lockForm" method="post" asp-page-handler="LockBranch">
+    <input type="hidden" id="lockBranchId" name="branchId" />
+</form>
+<form id="unlockForm" method="post" asp-page-handler="UnlockBranch">
+    <input type="hidden" id="unlockBranchId" name="branchId" />
+</form>
+
+@section Scripts {
+    <script src="~/js/military.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            loadList();
+        });
+
+        function loadList() {
+            dataTable = $('#Military_Branch_table').DataTable({
+                "ajax": {
+                    "url": "/api/military/GetMilitaryBranches",
+                    "type": "GET",
+                    "datatype": "json",
+                },
+                "columns": [
+                    { data: "branchName", width: "60%" },
+                    {
+                        data: "id", width: "40%",
+                        "render": function (data, type, row) {
+                            let lockButton = '';
+                            if (row.isActive) {
+                                lockButton = `<button type="button" onclick="lockBranch(${data})" class="btn btn-warning">
+                                                <i class="fas fa-lock"></i> Lock
+                                            </button>`;
+                            } else {
+                                lockButton = `<button type="button" onclick="unlockBranch(${data})" class="btn btn-danger">
+                                                <i class="fas fa-lock-open"></i> Unlock
+                                            </button>`;
+                            }
+
+                            return `<div class="text-center">
+                                         ${lockButton}
+                                        <a href="/Admin/MilitaryBranches/Upsert?branchId=${data}" class="btn btn-success">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                    </div>`;
+                        }
+                    }
+                ],
+                "searching": true,
+                "language": {
+                    "emptyTable": "no data found."
+                },
+                "width": "100%",
+                "dom": "lrtip"
+            });
+            //search button
+                $('#searchBranchButton').on('click', function () {
+                    const value = $('#searchBranchInput').val();
+                    dataTable.search(value).draw();
+                });
+                //adding for enter key
+                $('#searchBranchInput').on('keypress', function (e) {
+                    if (e.which === 13) {
+                        e.preventDefault();
+                        const value = $(this).val();
+                        dataTable.search(value).draw();
+                    }
+                 });
+                // Reset button
+                $('#resetBranchSearch').on('click', function (e) {
+                     e.preventDefault();
+                    $('#searchBranchInput').val('');
+                    dataTable.search('').draw();
+                });
+        }
+
+        function lockBranch(branchId) {
+            document.getElementById('lockBranchId').value = branchId;
+            document.getElementById('lockForm').submit();
+        }
+
+        function unlockBranch(branchId) {
+            document.getElementById('unlockBranchId').value = branchId;
+            document.getElementById('unlockForm').submit();
+        }
+    </script>
+}

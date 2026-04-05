@@ -1,0 +1,77 @@
+﻿@page
+@model RVPark.Pages.Admin.Photos.CreateModel
+
+@{
+    ViewData["Title"] = "Upload Photo";
+}
+
+<h1>Upload Photo</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>New Photo</h5>
+            </div>
+            <div class="card-body col-10">
+                <form method="post" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <input type="hidden" asp-for="Photo.SiteId" value="@Model.SiteId" />
+                    @* <div class="form-group mb-3"> *@
+                    @*     <label asp-for="Photo.SiteId" class="control-label">Site</label> *@
+                    @*     <select asp-for="Photo.SiteId" class="form-select" asp-items="ViewBag.SiteId"> *@
+                    @*         <option value="Photo.SiteId">-- Select Site --</option> *@
+                    @*     </select> *@
+                    @*     <span asp-validation-for="Photo.SiteId" class="text-danger"></span> *@
+                    @* </div> *@
+                    <div class="form-group mb-3">
+                        <label class="control-label">Site Number</label>
+                        <input value="@Model.SiteObj.Name" class="form-control" readonly />
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="photoFile" class="form-label">Photo File</label>
+                        <input type="file" class="form-control" id="photoFile" name="photoFile" required accept="image/*" multiple>
+                        <span class="text-muted">Maximum file size: 5MB. Allowed formats: JPG, JPEG, PNG, GIF</span>
+                    </div>
+
+                    
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                        <a asp-page="Index" asp-route-siteid="@Model.SiteId" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+                
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div id="imagePreview" style="display: none">
+            <p>Preview:</p>
+            <img id="preview" class="img-fluid img-thumbnail" alt="Preview" />
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Preview the selected image
+        document.getElementById('photoFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('preview').src = e.target.result;
+                    document.getElementById('imagePreview').style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+}
+

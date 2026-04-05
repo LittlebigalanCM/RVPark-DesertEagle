@@ -1,0 +1,74 @@
+﻿@page 
+@model RVPark.Pages.Admin.Photos.EditModel
+
+@{
+    ViewData["Title"] = "Edit Photo";
+}
+
+<h1>Edit Photo</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Photo.Id" />
+            <input type="hidden" asp-for="Photo.Name" />
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Current Photo</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3 text-center">
+                        <img src="@Model.Photo.Name" class="img-fluid" style="max-height: 300px;" alt="Current Photo">
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Photo.SiteId" class="form-label">Site</label>
+                        <select asp-for="Photo.SiteId" class="form-select" asp-items="ViewBag.SiteId">
+                            <option value="">-- Select Site --</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="photoFile" class="form-label">Replace Photo (optional)</label>
+                        <input type="file" class="form-control" id="photoFile" name="photoFile" accept="image/*">
+                        <span class="text-muted">Maximum file size: 5MB. Allowed formats: JPG, JPEG, PNG, GIF</span>
+                    </div>
+
+                    <div class="mb-3" id="imagePreview" style="display: none">
+                        <p>New Image Preview:</p>
+                        <img id="preview" class="img-fluid img-thumbnail" style="max-height: 300px;" alt="Preview">
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a asp-page="./Details" asp-route-photoId="@Model.Photo.Id" class="btn btn-info">Cancel</a>
+                    <a asp-page="./Index" class="btn btn-secondary">Back to List</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+        <script>
+            // Preview the selected image
+            document.getElementById('photoFile').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('preview').src = e.target.result;
+                        document.getElementById('imagePreview').style.display = 'block';
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        </script>
+}
+

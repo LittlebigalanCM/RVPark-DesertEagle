@@ -1,0 +1,107 @@
+﻿@page
+@model RVPark.Pages.Admin.Photos.IndexModel
+
+@{
+    ViewData["Title"] = "Photo Gallery";
+}
+
+@* -Disable the Site Specific Title Feature- *
+    if(Model.Site == null)
+    {
+        <h1 class="text-secondary">Photo Gallery</h1>
+    }
+    else
+    {
+        <h1 class="text-secondary">Photos for Site#@Model.Site.Name</h1>
+
+    }
+}  
+*@
+<h1 class="text-secondary">Park Photo Gallery</h1>
+@*
+<p>
+    @if (Model.Site != null) {
+        <a asp-page="Create" asp-route-siteId="@Model.Site.SiteId" class="btn btn-primary">Upload New Photo</a>
+        <a asp-page="/Admin/Sites/Index" class="btn btn-primary">Back to RV Sites</a>
+    }
+</p>
+*@
+
+<div class="row" id="photo_content">
+    @foreach (var item in Model.Photo)
+    {
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="row g-0">
+                    <a asp-page="Details" asp-route-photoId="@item.Id">
+                        <img src="@item.Name" class="img-fluid rounded-start" alt="@item.Site?.Name" style="height: 10rem;">
+                    </a>
+                </div>
+
+
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        Site: @item.Site?.Name
+                    </h6>
+                    <div class="btn-group">
+
+                        <a asp-page="Details" asp-route-photoId=@item.Id class="btn btn-info">View</a>
+                        <a onClick="Delete('/api/photo/@item.Id')" class="btn btn-danger text-white" style="cursor:pointer; width:100px;">
+                            <i class="bi bi-trash"></i> Delete
+                        </a>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.Photo.Any())
+{
+    <div class="alert alert-info">
+        No photos found. Click "Upload New Photo" to add photos.
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function Delete(url) {
+            Swal.fire({
+                title: "Are you sure you want to delete?",
+                text: "You will not be able to restore this data!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        type: 'DELETE',
+                        url: url,
+                        success: function (data) {
+                            console.log(data); // Debug log
+                            if (data.success) {
+                                toastr.success(data.message);
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 1000);
+                                //$('#DT_Load').DataTable().ajax.reload(null, false); false = don't reset pagination
+                            } else {
+                                toastr.error(data.message);
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            console.error(xhr.responseText);
+                            toastr.error("An error occurred while deleting.");
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+}
+

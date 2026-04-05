@@ -1,0 +1,364 @@
+﻿@page
+@model RVPark.Pages.Client.Reservations.PaymentModel
+@{
+    ViewData["Title"] = "Pay Balance";
+    bool isAdmin = User.IsInRole("Admin") || User.IsInRole("Staff");
+}
+
+<input type="hidden" id="reservationId" value="@Model.Reservation.ReservationId" />
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="my-2"><i class="fas fa-credit-card me-2"></i> Pay Your Balance</h4>
+                </div>
+                <div class="card-body">
+
+                    <!-- Reservation Summary -->
+                    <section class="mb-4">
+                        <h5 class="text-primary border-bottom pb-2">Reservation Summary</h5>
+                        <dl class="row">
+                            <dt class="col-sm-4">Guest:</dt>
+                            <dd class="col-sm-8">@Model.Reservation.UserAccount?.FullName</dd>
+
+                            <dt class="col-sm-4">Reservation ID:</dt>
+                            <dd class="col-sm-8">@Model.Reservation.ReservationId</dd>
+
+                            <dt class="col-sm-4">Site:</dt>
+                            <dd class="col-sm-8">@Model.Reservation.Site?.Name</dd>
+
+                            <dt class="col-sm-4">Dates:</dt>
+                            <dd class="col-sm-8">@Model.Reservation.StartDate.ToShortDateString() to @Model.Reservation.EndDate.ToShortDateString()</dd>
+
+                            <dt class="col-sm-4">Nights:</dt>
+                            <dd class="col-sm-8">@((Model.Reservation.EndDate - Model.Reservation.StartDate).Days)</dd>
+                        </dl>
+                    </section>
+
+                    <!-- Unpaid Transactions to Select -->
+                    <section class="mb-4">
+                        <h5 class="text-primary border-bottom pb-2">Unpaid Transactions</h5>
+
+                        @if (Model.UnpaidTransactions?.Any() == true)
+                        {
+                            <form id="selection-form" class="mb-3">
+                                <table class="table table-bordered table-sm align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 36px;">
+                                                <input type="checkbox" id="select-all" />
+                                            </th>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                            <th class="text-end">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var t in Model.UnpaidTransactions)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" class="txn-checkbox" value="@t.TransactionId" />
+                                                </td>
+                                                <td>@t.Fee?.Name</td>
+                                                <td>@t.Description</td>
+                                                <td class="text-end">@t.Amount.ToString("C")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-secondary fw-bold">
+                                            <td colspan="3" class="text-end">Selected Total</td>
+                                            <td class="text-end">
+                                                <span id="selected-total">@Model.SelectedTotal.ToString("C")</span>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+
+                            </form>
+                        }
+                        else
+                        {
+                            <div class="alert alert-success mb-0">
+                                <i class="fas fa-check-circle me-1"></i> No unpaid transactions.
+                            </div>
+                        }
+                    </section>
+
+                    <section id="card-section" class="border p-3 rounded bg-light">
+                        @Html.AntiForgeryToken()
+                        <form id="payment-form">
+                            <div class="form-group mb-3" id="credit-card-input">
+                                <label for="card-num-element">Credit Card Number</label>
+                                <div id="card-num-element" class="form-control p-2 border rounded"></div>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="card-exp-element">Expiration Date</label>
+                                <div id="card-exp-element" class="form-control p-2 border rounded"></div>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="card-cvc-element">Security Code (CVC)</label>
+                                <div id="card-cvc-element" class="form-control p-2 border rounded"></div>
+                            </div>
+
+                            <button id="submit" class="btn btn-success w-100" disabled>
+                                <i class="fas fa-lock me-1"></i> Pay Now
+                            </button>
+                            <div id="card-errors" class="text-danger mt-2" role="alert"></div>
+                        </form>
+                    </section>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const createIntentUrl = `${window.location.pathname}?handler=CreateIntent`;
+            const reservationId = document.getElementById("reservationId").value;
+
+            // Stripe
+            const stripe = Stripe("@Model.PublishableKey");
+            const elements = stripe.elements();
+            // const card = elements.create("card", {
+            //     style: {
+            //         base: {
+            //             fontSize: '16px',
+            //             color: '#212529',
+            //             fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+            //             '::placeholder': { color: '#6c757d' }
+            //         },
+            //         invalid: { color: '#dc3545' }
+            //     }
+            // });
+
+            // const card = elements.create("card");
+            // card.mount("#card-element");
+
+              // Credit Card is separated into different input fields
+            const cardNum = elements.create("cardNumber", {
+                style: {
+                    base: {
+                        fontSize: '16px',
+                        color: '#212529',
+                        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                        '::placeholder': { color: '#6c757d' }
+                    },
+                    invalid: { color: '#dc3545' }
+                }
+            });
+            cardNum.mount("#card-num-element");
+
+            const cardExp = elements.create("cardExpiry", {
+                style: {
+                    base: {
+                        fontSize: '16px',
+                        color: '#212529',
+                        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                        '::placeholder': { color: '#6c757d' }
+                    },
+                    invalid: { color: '#dc3545' }
+                }
+            });
+            cardExp.mount("#card-exp-element");
+
+            const cardCvc = elements.create("cardCvc", {
+                style: {
+                    base: {
+                        fontSize: '16px',
+                        color: '#212529',
+                        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                        '::placeholder': { color: '#6c757d' }
+                    },
+                    invalid: { color: '#dc3545' }
+                }
+            });
+            cardCvc.mount("#card-cvc-element");
+
+            // UI
+            const selectAll = document.getElementById("select-all");
+            const checkboxes = () => Array.from(document.querySelectorAll(".txn-checkbox"));
+            const selectedTotalEl = document.getElementById("selected-total");
+            const submitBtn = document.getElementById("submit");
+            const cardErrors = document.getElementById("card-errors");
+
+            // Optional summary spans (only update if present)
+            const chosenIdsEl = document.getElementById("chosen-ids");
+            const chosenTotalEl = document.getElementById("chosen-total");
+
+            // State
+            let currentClientSecret = null;
+            let currentTransactionIds = [];
+
+            // If you removed antiforgery on the handler with [IgnoreAntiforgeryToken], this can stay blank.
+            function getRequestVerificationToken() {
+                const el = document.querySelector('input[name="__RequestVerificationToken"]');
+                return el ? el.value : "";
+            }
+
+            function getSelection() {
+                const rows = checkboxes().map(cb => ({
+                    id: parseInt(cb.value),
+                    checked: cb.checked,
+                    amount: parseFloat(
+                    cb.closest("tr")
+                        .querySelector("td.text-end")
+                        .textContent.replace(/[^0-9.-]+/g, "")
+                    )
+                }));
+                const picked = rows.filter(r => r.checked);
+                const total = picked.reduce((sum, r) => sum + r.amount, 0);
+                const ids = picked.map(r => r.id);
+
+                if (selectedTotalEl) {
+                    selectedTotalEl.textContent = total.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+                }
+                return { ids, total };
+            }
+
+            function updateCardSummary(ids, totalCents) {
+                if (chosenIdsEl) chosenIdsEl.textContent = ids.length ? ids.join(", ") : "—";
+                if (chosenTotalEl) chosenTotalEl.textContent = (totalCents / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+            }
+
+            function looksLikeHtml(text) {
+                const t = text.trim().toLowerCase();
+                return t.startsWith("<!doctype") || t.startsWith("<html");
+            }
+
+            async function createIntent(transactionIds) {
+                if (!transactionIds.length) {
+                    // no selection — keep Pay disabled & clear state
+                    currentClientSecret = null;
+                    currentTransactionIds = [];
+                    submitBtn.disabled = true;
+                    updateCardSummary([], 0);
+                    return;
+                }
+
+                const resp = await fetch(createIntentUrl, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        // If your handler has [IgnoreAntiforgeryToken], this header is ignored. Otherwise it helps.
+                        "RequestVerificationToken": getRequestVerificationToken()
+                    },
+                    body: JSON.stringify(transactionIds)
+                });
+
+                // If server sent HTML (e.g., redirect/login/antiforgery page), show readable error
+                const raw = await resp.text();
+                if (!resp.ok) {
+                    console.error("CreateIntent failed:", resp.status, raw);
+                    throw new Error(looksLikeHtml(raw) ? "Unable to start payment (server returned an HTML error page). Are you logged in?" : (raw || "Failed to create PaymentIntent."));
+                }
+
+                if (looksLikeHtml(raw)) {
+                    console.error("CreateIntent returned HTML, not JSON:", raw.substring(0, 200));
+                    throw new Error("Server returned HTML instead of JSON. Check auth/antiforgery settings.");
+                }
+
+                let payload;
+                try {
+                    payload = JSON.parse(raw);
+                } catch {
+                    console.error("CreateIntent JSON parse error. Body was:", raw.substring(0, 200));
+                    throw new Error("Invalid response from server when creating payment.");
+                }
+
+                const { clientSecret, total } = payload;
+
+                currentClientSecret = clientSecret;
+                currentTransactionIds = transactionIds;
+
+                updateCardSummary(transactionIds, total);
+                submitBtn.disabled = false; // enable Pay
+            }
+
+            // Debounce selection changes
+            let debounceTimer = null;
+            const DEBOUNCE_MS = 250;
+            function onSelectionChanged() {
+                const { ids } = getSelection();
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(async () => {
+                    cardErrors.textContent = "";
+                    submitBtn.disabled = true;
+                    try {
+                        await createIntent(ids);
+                    } catch (err) {
+                        console.error(err);
+                        cardErrors.textContent = err.message || "Unable to prepare payment.";
+                        submitBtn.disabled = true;
+                    }
+                }, DEBOUNCE_MS);
+            }
+
+            // Wire up selection events
+            if (selectAll) {
+                selectAll.addEventListener("change", () => {
+                    const val = selectAll.checked;
+                    checkboxes().forEach(cb => cb.checked = val);
+                    onSelectionChanged();
+                });
+            }
+            checkboxes().forEach(cb => cb.addEventListener("change", onSelectionChanged));
+
+            // Initial: compute totals and keep Pay disabled until selection
+            getSelection();
+            updateCardSummary([], 0);
+            submitBtn.disabled = true;
+
+            // Handle Pay
+            document.getElementById("payment-form").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                cardErrors.textContent = "";
+                submitBtn.disabled = true;
+
+                try {
+                    if (!currentClientSecret || !currentTransactionIds.length) {
+                        throw new Error("Please select at least one transaction to pay.");
+                    }
+
+                    const { paymentIntent, error } = await stripe.confirmCardPayment(currentClientSecret, {
+                        // payment_method: { card: card }
+                        payment_method: { card: cardNum } // Hopefully this just works
+                    });
+
+                    if (error) {
+                        submitBtn.disabled = false;
+                        cardErrors.textContent = error.message || "Payment failed.";
+                        return;
+                    }
+
+                    if (paymentIntent && paymentIntent.status === "succeeded") {
+                        await fetch(`/api/Payment/MarkAsPaidBatch`, {
+                            method: "POST",
+                            credentials: "same-origin",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "RequestVerificationToken": getRequestVerificationToken()
+                            },
+                            body: JSON.stringify(currentTransactionIds)
+                        });
+
+                        window.location.href = `/Client/Reservations/Receipt?reservationId=${reservationId}`;
+                    } else {
+                        submitBtn.disabled = false;
+                    }
+                } catch (err) {
+                    console.error(err);
+                    cardErrors.textContent = err.message || "An error occurred.";
+                    submitBtn.disabled = false;
+                }
+            });
+        });
+    </script>
+}

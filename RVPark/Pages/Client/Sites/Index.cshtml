@@ -1,0 +1,196 @@
+﻿@page "{handler?}"
+@using ApplicationCore.Models
+@model RVPark.Pages.Client.Sites.IndexModel
+@using Infrastructure.Utilities
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+    .site-card {
+        border: 1px solid #e3e6ea;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: transform .2s ease, box-shadow .2s ease;
+        background: #fff;
+        height: 100%;
+    }
+
+        .site-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        }
+
+    .site-image {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+    }
+
+    .sites-hero {
+        background: linear-gradient(180deg, #f2f6fb 0%, #e9eff6 100%);
+    }
+
+    .rule-card {
+        background: #f8f9fb;
+        border-radius: 12px;
+        padding: 20px;
+        height: 100%;
+        border: 1px solid #e3e6ea;
+        text-align: center;
+    }
+
+    .rule-icon {
+        font-size: 1.5rem;
+        color: #1f5fa8;
+        margin-right: 12px;
+    }
+</style>
+
+<div class="container py-4">
+
+    <!-- Header -->
+    <div class="sites-hero text-center shadow-sm rounded-3 p-4 p-md-5 mb-4">
+        <h2 class="fw-bold" style="font-size: clamp(1.5rem, 2.2vw + 1rem, 2.25rem); color:#1f5fa8;">
+            Site Types
+        </h2>
+    </div>
+
+    <div class="row g-4">
+        @foreach (var item in Model.SiteTypes)
+        {
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <div class="site-card">
+
+                    <div class="p-3">
+
+                        <h4 class="fw-bold text-center mb-3">@item.Name</h4>
+
+                        <!-- Dynamic description -->
+                        <div>
+                            @switch (item.SiteTypeId)
+                            {
+                                case 1:
+                                    <ul class="list-unstyled small text-muted">
+                                        <li><i class="bi bi-car-front text-primary"></i> Fits 3 vehicles</li>
+                                        <li><i class="bi bi-arrows-expand text-primary"></i> Max RV length: 60 ft</li>
+                                        <li><i class="bi bi-lightning-charge text-warning"></i> Full hookups</li>
+                                        <li><i class="bi bi-arrow-right-circle"></i> Pull-through</li>
+                                    </ul>
+                                    break;
+
+                                case 2:
+                                    <ul class="list-unstyled small text-muted">
+                                        <li><i class="bi bi-car-front text-primary"></i> Fits 3 vehicles</li>
+                                        <li><i class="bi bi-arrows-expand text-primary"></i> Max RV length: 60 ft</li>
+                                        <li><i class="bi bi-lightning-charge text-warning"></i> Full hookups</li>
+                                        <li><i class="bi bi-arrow-bar-left"></i> Back-in</li>
+                                    </ul>
+                                    break;
+
+                                case 3:
+                                    <ul class="list-unstyled small text-muted">
+                                        <li><i class="bi bi-car-front text-primary"></i> Fits 2 vehicles</li>
+                                        <li><i class="bi bi-arrows-expand text-primary"></i> Max RV length: 45 ft</li>
+                                        <li><i class="bi bi-lightning-charge text-warning"></i> Full hookups</li>
+                                    </ul>
+                                    break;
+
+                                case 4:
+                                    <ul class="list-unstyled small text-muted">
+                                        <li><i class="bi bi-tree text-success"></i> Tent or overflow parking</li>
+                                        <li><i class="bi bi-calendar-x text-danger"></i> Not available Jun 15 – Sep 15</li>
+                                    </ul>
+                                    break;
+
+                                case 5:
+                                    <ul class="list-unstyled small text-muted">
+                                        <li><i class="bi bi-box-seam"></i> Short-term dry storage</li>
+                                        <li><i class="bi bi-clock-history"></i> Max 60 days</li>
+                                        <li><i class="bi bi-telephone"></i> Phone reservations only</li>
+                                    </ul>
+                                    break;
+
+                                case 6:
+                                    <ul class="list-unstyled small text-muted">
+                                        <li><i class="bi bi-car-front text-primary"></i> Fits 3 vehicles</li>
+                                        <li><i class="bi bi-arrows-expand text-primary"></i> Max RV length: 60 ft</li>
+                                        <li><i class="bi bi-lightning-charge text-warning"></i> Full hookups</li>
+                                        <li><i class="bi bi-telephone"></i> Phone reservations only</li>
+                                    </ul>
+                                    break;
+
+                                case 7:
+                                    <ul class="list-unstyled small text-muted">
+                                        <li><i class="bi bi-car-front text-primary"></i> Fits 2 vehicles</li>
+                                        <li><i class="bi bi-arrows-expand text-primary"></i> Max RV length: 45 ft</li>
+                                        <li><i class="bi bi-droplet-half text-info"></i> Partial hookups</li>
+                                        <li><i class="bi bi-telephone"></i> Phone reservations only</li>
+                                    </ul>
+                                    break;
+
+                                default:
+                                    <p class="text-muted small">No description available. Call for details.</p>
+                                    break;
+                            }
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Rules Section -->
+    <div class="sites-hero text-center shadow-sm rounded-3 p-4 p-md-5 my-5">
+        <h2 class="fw-bold" style="font-size: clamp(1.5rem, 2.2vw + 1rem, 2.25rem); color:#1f5fa8;">
+            Rules & Policies
+        </h2>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- General Info -->
+        <div class="col-md-6">
+            <div class="rule-card">
+                <h5 class="fw-bold mb-3"><i class="bi bi-info-circle rule-icon"></i>General Info</h5>
+                <ul class="list-unstyled small text-muted">
+                    <li><i class="bi bi-clock"></i> Check-in: 12:00 PM</li>
+                    <li><i class="bi bi-clock-history"></i> Check-out: 11:00 AM</li>
+                    <li><i class="bi bi-wifi"></i> Free WiFi available</li>
+                    <li><i class="bi bi-paw"></i> Pet-friendly (2 max)</li>
+                    <li><i class="bi bi-telephone"></i> 702-643-3060</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Policies -->
+        <div class="col-md-6">
+            <div class="rule-card">
+                <h5 class="fw-bold mb-3"><i class="bi bi-shield-check rule-icon"></i>Policies</h5>
+                <ul class="list-unstyled small text-muted">
+                    <li><i class="bi bi-exclamation-circle"></i> Ensure your RV fits within your site</li>
+                    <li><i class="bi bi-people"></i> $1 per extra adult over 4</li>
+                    <li><i class="bi bi-x-circle"></i> Fees apply for cancellations, no-shows, and late check-ins</li>
+                    <li><i class="bi bi-envelope"></i> Email: deserteaglervnellis@gmail.com</li>
+                    <li><i class="bi bi-calendar-check"></i> All sites are available to book online unless otherwise stated.</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+    <div class="card-footer bg-transparent">
+        @if (User.IsInRole(SD.AdminRole) || User.IsInRole(SD.StaffRole) || User.IsInRole(SD.CampHostRole))
+        {
+            <a href="/Admin/Reservations/Create" class="btn btn-primary w-100 mb-2">
+                <i class="fas fa-calendar-plus me-2"></i>Make Reservation
+            </a>
+        }
+        else
+        {
+            <a href="/Client/Reservations/Browse" class="btn btn-primary w-100 mb-2">
+                <i class="fas fa-calendar-plus me-2"></i>Book Your Stay
+            </a>
+        }
+    </div>
+
+</div>

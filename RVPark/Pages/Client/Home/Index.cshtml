@@ -1,0 +1,394 @@
+﻿@page
+@using Infrastructure.Utilities
+@model RVPark.Pages.Client.Home.IndexModel
+@{
+	ViewData["Title"] = "Home";
+}
+
+<!-- Hero Section -->
+<section class="hero-welcome fade-in">
+	<div class="container">
+		<h1>Welcome to Desert Eagle RV Park!</h1>
+		<p class="lead">Your premium home away from home at Nellis Air Force Base</p>
+	</div>
+</section>
+
+<!-- Carousel Section -->
+<div class="container my-5">
+	<div class="row g-3 fade-in">
+		<div class="col-1 prev-button-div">
+			<button class="my-prev-button" type="button" data-bs-target="#rv-carousel" data-bs-slide="prev" aria-label="Previous image">
+				<span class="carousel-control-prev-icon" aria-hidden="true"></span>
+				<span class="visually-hidden">Previous</span>
+			</button>
+		</div>
+
+		<div id="rv-carousel" class="carousel slide col-10" data-bs-ride="carousel">
+			<div class="carousel-inner">
+				<div class="carousel-item active">
+					<img src="~/images/sitePhotos/rvpic1.jpg" class="d-block w-100" alt="Desert Eagle RV Park - Premium RV Sites">
+					<div class="carousel-caption d-none d-md-block">
+						<div class="glass-card p-3">
+							<h5>Premium Pull-Through Sites</h5>
+							<p>Up to 70' length with full hookups - Sites 1-108</p>
+						</div>
+					</div>
+				</div>
+				<div class="carousel-item">
+					<img src="~/images/sitePhotos/rvpic2.jpg" class="d-block w-100" alt="Desert Eagle RV Park - Mountain Views">
+					<div class="carousel-caption d-none d-md-block">
+						<div class="glass-card p-3">
+							<h5>226 Total Sites Available</h5>
+							<p>Full hookup, partial hookup, and tent sites</p>
+						</div>
+					</div>
+				</div>
+				<div class="carousel-item">
+					<img src="~/images/sitePhotos/rvpic3.jpg" class="d-block w-100" alt="Desert Eagle RV Park - Community">
+					<div class="carousel-caption d-none d-md-block">
+						<div class="glass-card p-3">
+							<h5>Military Community</h5>
+							<p>Located on Nellis Air Force Base - Home to The Thunderbirds</p>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="carousel-indicators">
+				<button type="button" data-bs-target="#rv-carousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+				<button type="button" data-bs-target="#rv-carousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+				<button type="button" data-bs-target="#rv-carousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+			</div>
+		</div>
+
+		<div class="col-1 next-button-div">
+			<button class="my-next-button" type="button" data-bs-target="#rv-carousel" data-bs-slide="next" aria-label="Next image">
+				<span class="carousel-control-next-icon" aria-hidden="true"></span>
+				<span class="visually-hidden">Next</span>
+			</button>
+		</div>
+	</div>
+</div>
+
+<!-- Site Types and Pricing Section -->
+<section class="content-section fade-in">
+	<div class="container">
+		<div class="row text-center mb-5">
+			<div class="col-12">
+				<h2 class="display-5 fw-bold text-primary mb-4">Our Site Types & Pricing</h2>
+				<p class="lead text-center">226 total sites to accommodate every type of camping need</p>
+			</div>
+		</div>
+
+		<div class="row g-4 mb-5">
+			@foreach (var siteType in Model.SiteTypes
+				.Where(st => st.SiteTypeId != 6)
+				.OrderBy(st => st.SiteTypeId == 4 ? 1 : 0)
+				.ThenBy(st => st.SiteTypeId))
+			{
+				if (siteType.SiteTypeId != 6) // Exclude Wagon Wheel. Don't exclude short-term storage, as it was here before, but like... I don't see why it has to be? Not my job to think, though
+				{
+					<div class="col-md-6">
+						<div class="card h-100 glass-card border-0">
+							<div class="card-body text-center p-4">
+								<div class="mb-3" id="siteTypeSymbol_@siteType.SiteTypeId">
+									@* This is kind of a terrible way to do this, but it's the only way I can think of to have both id-based price determining and per-SiteType icons and descriptions *@
+									@switch (siteType.Name)
+									{
+										case "Premium Pull-Through":
+											<i class="fas fa-star fa-3x text-warning"></i>
+											break;
+                                        case "Premium Back-In":
+	                                        <i class="fas fa-trailer fa-3x text-primary"></i>
+                                            break;
+                                        case "Standard":
+											<i class="fas fa-truck fa-3x text-success"></i>
+                                            break;
+                                        case "Tent/Overflow":
+											<i class="fas fa-campground fa-3x text-secondary"></i>
+											break;
+                                        case "Partial Hookup":
+											<i class="fas fa-caravan fa-3x text-warning"></i>
+                                            break;
+										case "Short Term Storage":
+											<i class="fas fa-warehouse fa-2x text-info"></i>
+                                            break;
+										default:
+											break;
+									}
+								</div>
+								<h5 class="card-title text-primary">@siteType.Name</h5>
+								<h4 class="text-success" id="siteTypePrice_@siteType.SiteTypeId">
+									@foreach (var price in Model.SiteTypePrices[siteType.SiteTypeId])
+									{
+										<span>
+											@price.PricePerDay.ToString("C") per night
+											@if (Model.SiteTypePrices[siteType.SiteTypeId].Count() > 1 || price.EndDate != null)
+                                            { // Format and display the date range if there are multiple prices or if there's a known end date
+												var endDateString = price.EndDate != null ? $" to {price.EndDate.GetValueOrDefault().ToShortDateString()}" : " - ongoing";
+												<small class="fst-italic">(@price.StartDate.ToShortDateString()@endDateString)</small>
+											}
+										</span>
+										// Add a line break if it's not the last price in the sequence
+										if (Model.SiteTypePrices[siteType.SiteTypeId].Count() > 1 && price != Model.SiteTypePrices[siteType.SiteTypeId].ElementAt(Model.SiteTypePrices[siteType.SiteTypeId].Count() - 1))
+										{
+											<br />
+										}
+									}
+								</h4>
+								<div id="siteTypeCard_@siteType.SiteTypeId">
+									@switch (siteType.Name)
+									{
+										case "Premium Pull-Through":
+											<p class="card-text">
+												<strong>Max 60' length</strong><br>
+												Sites 101-108<br>
+												Full hookups
+											</p>
+											break;
+										case "Premium Back-In":
+											<p class="card-text">
+												<strong>Max 60' length</strong><br>
+												Multiple site numbers<br>
+												Full hookups
+											</p>
+											break;
+										case "Standard":
+											<p class="card-text">
+												<strong>Max 45' length</strong><br>
+												Sites 109-221<br>
+												Full hookups
+											</p>
+											break;
+										case "Tent/Overflow":
+											<p class="card-text">
+												<strong>Seasonal</strong><br>
+												Not available June 15 - Sep 15<br>
+												Sites T1-T5
+											</p>
+											break;
+										case "Partial Hookup":
+											<p class="card-text">
+												<strong>Max 45' length</strong><br />
+												Sites 222-226<br />
+												Partial hookups only
+											</p>
+											break;
+										case "Short Term Storage":
+											<p class="card-text">
+												<strong>Max 60 days</strong><br>
+												Sites STS1-STS50
+											</p>
+											break;
+										default:
+											break;
+									}
+								</div>
+							</div>
+						</div>
+					</div>
+				}
+			}
+		</div>
+
+	</div>
+</section>
+
+<!-- Features Section -->
+<section class="content-section bg-light fade-in">
+	<div class="container">
+		<div class="row text-center mb-5">
+			<div class="col-12">
+				<h2 class="display-5 fw-bold text-primary mb-4">Why Choose Desert Eagle RV Park?</h2>
+			</div>
+		</div>
+
+		<div class="row g-4 mb-5">
+			<div class="col-md-4">
+				<div class="card h-100 glass-card border-0">
+					<div class="card-body text-center p-4">
+						<div class="mb-3">
+							<i class="fas fa-shield-alt fa-3x text-primary"></i>
+						</div>
+						<h5 class="card-title">Secure Military Base</h5>
+						<p class="card-text">Located on Nellis Air Force Base with 24/7 security and controlled access for your peace of mind.</p>
+					</div>
+				</div>
+			</div>
+
+			<div class="col-md-4">
+				<div class="card h-100 glass-card border-0">
+					<div class="card-body text-center p-4">
+						<div class="mb-3">
+							<i class="fas fa-map-marker-alt fa-3x text-success"></i>
+						</div>
+						<h5 class="card-title">Prime Las Vegas Location</h5>
+						<p class="card-text">Easy access to Las Vegas Strip, Hoover Dam, and all the entertainment the city has to offer.</p>
+					</div>
+				</div>
+			</div>
+
+			<div class="col-md-4">
+				<div class="card h-100 glass-card border-0">
+					<div class="card-body text-center p-4">
+						<div class="mb-3">
+							<i class="fas fa-users fa-3x text-warning"></i>
+						</div>
+						<h5 class="card-title">Military Community</h5>
+						<p class="card-text">Join a community that understands military life. Max 4 occupants and 2 pets per site.</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- About Section -->
+<section class="content-section fade-in">
+	<div class="container">
+		<div class="row align-items-center">
+			<div class="col-lg-8">
+				<h3 class="display-6 fw-bold text-primary mb-4">Experience the Best of Las Vegas</h3>
+				<div class="content-text">
+					<p>
+						Desert Eagle RV Park and our staff warmly welcomes you to the campground. We are thrilled your chosen path has led you to Nellis Air Force Base and are excited to serve as your home away from home while you enjoy everything Las Vegas has to offer.
+					</p>
+					<p>
+						We recommend seeing the night lights emanating from the elaborate hotels along the Vegas strip, or be inspired by the wondrous views at The Hoover Dam. You can also take it easy and visit the museums around the area and learn about the city's history and its masterpieces.
+					</p>
+					<p class="fw-bold text-primary">
+						Lastly, friendly reminder to fasten down your picture frames and let the sound of freedom ring into your rig. After all, Nellis is Home to The Thunderbirds.
+					</p>
+				</div>
+			</div>
+			<div class="col-lg-4">
+				<div class="card glass-card border-0">
+					<div class="card-header bg-primary text-white">
+						<h5 class="my-2"><i class="fas fa-info-circle me-2"></i>Quick Info</h5>
+					</div>
+					<div class="card-body">
+						<ul class="list-unstyled mb-0">
+							<li class="mb-2"><i class="fas fa-clock me-2 text-primary"></i>Check-in: 12:00 PM</li>
+							<li class="mb-2"><i class="fas fa-clock me-2 text-primary"></i>Check-out: 11:00 AM</li>
+							<li class="mb-2"><i class="fas fa-phone me-2 text-primary"></i>702-643-3060</li>
+							<li class="mb-2"><i class="fas fa-campground me-2 text-primary"></i>226 Total Sites</li>
+							<li class="mb-2"><i class="fas fa-wifi me-2 text-primary"></i>Free WiFi Available</li>
+							<li class="mb-0"><i class="fas fa-paw me-2 text-primary"></i>Pet-Friendly (2 max)</li>
+						</ul>
+					</div>
+					<div class="card-footer bg-transparent">
+						@if (User.IsInRole(SD.AdminRole) || User.IsInRole(SD.StaffRole) || User.IsInRole(SD.CampHostRole))
+						{
+							<a href="/Admin/Reservations/Create" class="btn btn-primary w-100 mb-2">
+								<i class="fas fa-calendar-plus me-2"></i>Make Reservation
+							</a>
+						}
+						else
+						{
+							<a href="/Client/Reservations/Browse" class="btn btn-primary w-100 mb-2">
+								<i class="fas fa-calendar-plus me-2"></i>Book Your Stay
+							</a>
+						}
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- Call to Action Section -->
+<section class="content-section bg-light fade-in">
+	<div class="container">
+		<div class="row">
+			<div class="col-12 text-center">
+				<div class="glass-card p-5">
+					<h3 class="display-6 fw-bold text-primary mb-4">Ready to Experience Desert Eagle RV Park?</h3>
+					<p class="lead mb-4">Join thousands of satisfied guests who have made unforgettable memories at our premium RV park.</p>
+					<div class="d-flex flex-wrap justify-content-center gap-3">
+						@if (User.IsInRole(SD.AdminRole) || User.IsInRole(SD.StaffRole) || User.IsInRole(SD.CampHostRole))
+						{
+							<a href="/Admin/Reservations/Create" class="btn btn-primary btn-lg">
+								<i class="fas fa-calendar-check me-2"></i>Make Reservation
+							</a>
+						}
+						else
+						{
+							<a href="/Client/Reservations/Browse" class="btn btn-primary btn-lg">
+								<i class="fas fa-calendar-check me-2"></i>Make Reservation
+							</a>
+						}
+
+						<a href="/Client/Sites/Index" class="btn btn-outline-primary btn-lg">
+							<i class="fas fa-map-marked-alt me-2"></i>View Our Sites
+						</a>
+						<a href="/Client/Contact/Index" class="btn btn-secondary btn-lg">
+							<i class="fas fa-phone me-2"></i>Contact Us
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+@section Scripts {
+	<script>
+		// Enhanced carousel functionality
+		document.addEventListener('DOMContentLoaded', function() {
+			// Auto-advance carousel every 5 seconds
+			const carousel = new bootstrap.Carousel(document.getElementById('rv-carousel'), {
+				interval: 5000,
+				wrap: true,
+				touch: true
+			});
+
+			// Pause carousel on hover
+			const carouselElement = document.getElementById('rv-carousel');
+			carouselElement.addEventListener('mouseenter', function() {
+				carousel.pause();
+			});
+			carouselElement.addEventListener('mouseleave', function() {
+				carousel.cycle();
+			});
+
+			// Add loading animation to images
+			const carouselImages = document.querySelectorAll('#rv-carousel img');
+			carouselImages.forEach(img => {
+				img.addEventListener('load', function() {
+					this.classList.add('loaded');
+				});
+			});
+
+			// Smooth scrolling for anchor links
+			document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+				anchor.addEventListener('click', function (e) {
+					e.preventDefault();
+					const target = document.querySelector(this.getAttribute('href'));
+					if (target) {
+						target.scrollIntoView({
+							behavior: 'smooth',
+							block: 'start'
+						});
+					}
+				});
+			});
+
+			// Add entrance animations with stagger effect
+			const cards = document.querySelectorAll('.card');
+			cards.forEach((card, index) => {
+				setTimeout(() => {
+					card.classList.add('fade-in', 'visible');
+				}, index * 100);
+			});
+		});
+
+		// Add parallax effect to hero section
+		// window.addEventListener('scroll', function() {
+		// 	const scrolled = window.pageYOffset;
+		// 	const hero = document.querySelector('.hero-welcome');
+		// 	if (hero) {
+		// 		hero.style.transform = `translateY(${scrolled * 0.5}px)`;
+		// 	}
+		// });
+	</script>
+}

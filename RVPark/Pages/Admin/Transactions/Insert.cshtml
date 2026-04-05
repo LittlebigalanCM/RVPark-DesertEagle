@@ -1,0 +1,149 @@
+﻿@page
+@model RVPark.Pages.Admin.Transactions.InsertModel
+@{
+    ViewData["Title"] = "Apply Transaction";
+    int resId = Model.Transaction?.ReservationId ?? 0;
+}
+
+<form method="post" enctype="multipart/form-data">
+    <div class="container">
+        <div class="row px-2 mx-2 backgroundWhite border">
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <!-- Header -->
+            <div class="col-12 px-3 mb-3" style="border-bottom:1px solid #325d88">
+                <h2 class="text-primary">
+                    @(resId == 0 ? "Apply Fees" : $"Apply Transaction to Reservation#{resId}")
+                </h2>
+            </div>
+
+            <div class="col-8 pt-3">
+                <!-- Reservation Dropdown -->
+                <div class="form-group row pt-3">
+                    <div class="col-3">
+                        <label asp-for="Transaction.ReservationId"></label>
+                    </div>
+                    <div class="col-9">
+                        @Html.DropDownListFor(m => m.Transaction.ReservationId, Model.ReservationList, " - Please select a Reservation - ", new { @class = "form-control selectpicker", @id = "ddlReservation", data_live_search = "true" })
+                        <span class="text-danger" asp-validation-for="Transaction.ReservationId"></span>
+                    </div>
+                </div>
+
+                <!-- Transaction Type Dropdown -->
+                <div class="form-group row pt-3">
+                    <div class="col-3">
+                        <label asp-for="Transaction.FeeId">Fee Type</label>
+                    </div>
+                    <div class="col-9">
+                        @Html.DropDownListFor(m => m.Transaction.FeeId, Model.FeesList, " - Please select a Fee Type - ", new { @class = "form-control selectpicker", @id = "ddlFee", data_live_search = "true" })
+                        <span class="text-danger" asp-validation-for="Transaction.FeeId"></span>
+                    </div>
+                </div>
+
+                <!-- Amount -->
+                <div class="form-group row pt-3">
+                    <div class="col-3">
+                        <label asp-for="Transaction.Amount"></label>
+                    </div>
+                    <div class="col-9">
+                        <input id="transactionAmount" class="form-control" asp-for="Transaction.Amount" />
+                        <span class="text-danger" asp-validation-for="Transaction.Amount"></span>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="form-group row pt-3">
+                    <div class="col-3">
+                        <label asp-for="Transaction.Description"></label>
+                    </div>
+                    <div class="col-9">
+                        <textarea id="transactionDesc" class="form-control" style="height:200px;" asp-for="Transaction.Description"></textarea>
+                    </div>
+                </div>
+
+                <!-- Send Email Checkbox -->
+                <div class="form-group row pt-3">
+                    <div class="col-3">
+                        <label asp-for="SendEmail">Send Email Notification?</label>
+                    </div>
+                    <div class="col-9">
+                        <div class="form-check">
+                            <input type="checkbox" asp-for="SendEmail" class="form-check-input" />
+                            <label class="form-check-label" asp-for="SendEmail">Yes, notify the guest by email</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden fields -->
+                <input type="hidden" asp-for="Transaction.TransactionDateTime" value="@DateTime.UtcNow" />
+                @if (Model.Transaction.TransactionId != 0)
+                {
+                    <input type="hidden" asp-for="Transaction.TransactionId" />
+                }
+
+                <!-- Buttons Row -->
+                <div class="form-group row pt-3">
+                    <div class="col-9 offset-3">
+                        <div class="row">
+                            <div class="col-6">
+                                <button type="submit" class="btn btn-primary form-control" onclick="return ValidateInput()">
+                                    Create
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <a asp-page="./Index" asp-route-reservationId="@resId" class="btn btn-success form-control">
+                                    Back to List
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        $("#ddlFee").change(function () {
+            var selectedTypeId = $("#ddlFee").val();
+            const url = '/api/transactionType/GetBaseAmount?transactionTypeId=' + selectedTypeId;
+            $.ajax({
+                url: url,
+                method: 'GET',
+                dataType: 'json',
+                success: function (response) {
+                    document.getElementById("transactionAmount").value = response.amount;
+                },
+                error: function (xhr, status, error) {
+                    console.error(error);
+                }
+            });
+        });
+
+        function ValidateInput() {
+            const amount = document.getElementById("transactionAmount").value;
+            const description = document.getElementById("transactionDesc").value;
+            const transactionType = $("#ddlFee option:selected").text();
+            const reservationVal = $("#ddlReservation option:selected").val();
+
+            if (isNaN(amount)) {
+                alert("Error: Please enter a number for the price.");
+                return false;
+            }
+            if (amount <= 0) {
+                alert("Error: Please enter a number greater than 0.");
+                return false;
+            }
+            if (transactionType === "Other" && description.trim() === "") {
+                alert("Error: Transaction description is required for 'Other' transaction.");
+                return false;
+            }
+            if (!reservationVal || reservationVal == 0) {
+                alert("Error: Please select a Reservation.");
+                return false;
+            }
+            return true;
+        }
+    </script>
+}

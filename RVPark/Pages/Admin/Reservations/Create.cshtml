@@ -1,0 +1,2027 @@
+﻿@page
+@using Infrastructure.Utilities
+@model RVPark.Pages.Admin.Reservations.CreateModel
+@{
+    ViewData["Title"] = "Create Reservation";
+}
+
+<form method="post">
+    <div class="container">
+        <div class="row px-2 mx-2 backgroundWhite border">
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <div class="col-12 px-3" style="border-bottom:1px solid #325d88">
+                <h2 class="text-primary">Create New Reservation</h2>
+                <a type="button" class="link-primary pb-1" data-bs-toggle="modal" data-bs-target="#builderHelpModal">Need help?</a>
+            </div>
+
+            @if (Model.IsEmailTaken == true)
+            {
+                <div id="takenEmailAlert" asp-for="IsEmailTaken" class="alert alert-danger" style="text-align: center;">
+                    Email is already taken.
+                </div>
+            }
+
+            <div class="col-lg-12 pt-3 order-lg-1">
+                <!-- Customer Selection -->
+                <div class="form-group row mb-3">
+                    <div class="col-4">
+                        <h5><label>Customer</label></h5>
+                    </div>
+                    <div class="col-8">
+                        <select asp-for="Reservation.UserId" asp-items="Model.UserList" class="form-control selectpicker" id="userDropdown" data-live-search="true">
+                            <option value=""> - Select a customer - </option>
+                        </select>
+                        <span class="text-danger" asp-validation-for="Reservation.UserId"></span>
+                    </div>
+                </div>
+
+                <!-- Walk-in customer section -->
+                <div id="newCustomerForm" class="form-group border border-3 pt-3 mb-3 rounded" style="display: none">
+                    <input id="isWalkin" type="hidden" asp-for="IsWalkinReservation" />
+                    <div class="form-group row mb-3">
+                        <div class="col-4">
+                            <h6><label asp-for="FirstName">First Name</label></h6>
+                        </div>
+                        <div class="col-8">
+                            <input id="FirstName" type="text" asp-for="FirstName" autocomplete="off" placeholder="First Name" class="form-control" />
+                            <p id="FirstNameValidation" style="color: red; display: none">First name is required</p>
+                        </div>
+                    </div>
+                    <div class="form-group row mb-3">
+                        <div class="col-4">
+                            <h6><label asp-for="LastName">Last Name</label></h6>
+                        </div>
+                        <div class="col-8">
+                            <input id="LastName" type="text" asp-for="LastName" autocomplete="off" placeholder="Last Name" class="form-control" />
+                            <p id="LastNameValidation" style="color: red; display: none">Last name is required</p>
+                        </div>
+                    </div>
+                    <div class="form-group row mb-3">
+                        <div class="col-4">
+                            <h6><label asp-for="Email"></label></h6>
+                        </div>
+                        <div class="col-8">
+                            <input id="Email" type="email" asp-for="Email" autocomplete="off" placeholder="Email" class="form-control" />
+                            <p id="EmailValidation" style="color: red; display: none">Email is required</p>
+                        </div>
+                    </div>
+                    <div class="form-group row mb-3">
+                        <div class="col-4">
+                            <h6><label asp-for="PhoneNumber">Phone Number</label></h6>
+                        </div>
+                        <div class="col-8">
+                            <input id="PhoneNumber" type="text" asp-for="PhoneNumber" autocomplete="off" placeholder="Phone Number" class="form-control" />
+                            <p id="PhoneNumberValidation" style="color: red; display: none">Phone Number is required</p>
+                        </div>
+                    </div>
+                    <div class="form-group row mb-3">
+                        <div class="col-4">
+                            <h6><label>Military Status</label></h6>
+                        </div>
+                        <div class="col-8">
+                            @Html.DropDownListFor(m => m.SelectedStatusId, Model.MilitaryStatusesList, " - Please select a Military Status - ", new { @class = "form-control selectpicker", @id = "ddlStatuses", data_live_search = "true" })
+                            <p id="StatusValidation" style="color: red; display: none">Military status is required</p>
+                        </div>
+                    </div>
+                    <div class="form-group row mb-3">
+                        <div class="col-4">
+                            <h6><label>Military Branch</label></h6>
+                        </div>
+                        <div class="col-8">
+                            @Html.DropDownListFor(m => m.SelectedBranchId, Model.MilitaryBranchesList, " - Please select a Military Branch - ", new { @class = "form-control selectpicker", @id = "ddlBranches", data_live_search = "true" })
+                            <p id="BranchValidation" style="color: red; display: none">Military branch is required</p>
+                        </div>
+                    </div>
+                    <div class="form-group row mb-3">
+                        <div class="col-4">
+                            <h6><label>Military Rank</label></h6>
+                        </div>
+                        <div class="col-8">
+                            @Html.DropDownListFor(m => m.SelectedRankId, Model.MilitaryRanksList, " - Please select a Military Rank - ", new { @class = "form-control selectpicker", @id = "ddlRanks", data_live_search = "true" })
+                            <p id="RankValidation" style="color: red; display: none">Military rank is required</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group row mb-3">
+                        <div class="col-4">
+                            <h6><label asp-for="SendingTempPassword">Send Temporary Password?</label></h6>
+                        </div>
+                        <div class="col-8 pt-3">
+                            <input id="tempPassYes" type="radio" asp-for="SendingTempPassword" value="@true" /> Yes </>
+                            <input id="tempPassNo" type="radio" asp-for="SendingTempPassword" value="@false" /> No </>
+
+                            <p id="SendTempPasswordValidation" style="color: red; display: none">You must choose whether or not to create a password now or send a temporary one</p>
+                        </div>
+
+                    </div>
+                    <div id="generatePassword" style="display: none">
+                        <div class="form-group row mb-3">
+                            <div class="col-4">
+                            </div>
+                            <div class="col-3">
+                                <button id="showTempPassBtn" class="btn btn-primary btn-sm" type="button">Show Temporary Password</button>
+                            </div>
+                            <div class="col-4">
+                                <button id="genNewPassBtn" class="btn btn-primary btn-sm" type="button">Generate New Temporary Password</button>
+                            </div>
+                        </div>
+                        <input id="tmpPass" type="hidden" asp-for="TempPassword" value=@null />
+                    </div>
+                    <div id="setPassword" style="display: none">
+                        <div class="form-group row mb-3">
+                            <div class="col-4">
+                                <h6><label asp-for="Password"></label></h6>
+                            </div>
+                            <div class="col-8">
+                                <input id="Password" type="password" asp-for="Password" autocomplete="off" placeholder="Password" class="form-control" />
+                                <p id="PasswordValidation" style="color: red; display: none">Password is required</p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row mb-3">
+                            <div class="col-4">
+                                <h6><label asp-for="ConfirmPassword"></label></h6>
+                            </div>
+                            <div class="col-8">
+                                <input id="ConfirmPassword" type="password" asp-for="ConfirmPassword" autocomplete="off" placeholder="Confirm Password" class="form-control" />
+                                <p id="ConfirmPasswordValidation" style="color: red; display: none">Password confirmation is required</p>
+                                <p id="MatchingPasswordValidation" style="color: red; display: none">Passwords must match</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Dates Section -->
+                <div class="form-group row mb-3">
+                    <div class="col-sm-4">
+                        <h5><label asp-for="Reservation.StartDate">Check-in Date</label></h5>
+                    </div>
+                    <div class="col-sm-8">
+                        <input type="date" class="form-control" asp-for="Reservation.StartDate" id="startDate" />
+                        <span class="text-danger" asp-validation-for="Reservation.StartDate"></span>
+                    </div>
+                </div>
+
+                <div class="form-group row mb-3">
+                    <div class="col-sm-4">
+                        <h5><label asp-for="Reservation.EndDate">Check-out Date</label></h5>
+                    </div>
+                    <div class="col-sm-8">
+                        <input type="date" class="form-control" asp-for="Reservation.EndDate" id="endDate" />
+                        <span class="text-danger" asp-validation-for="Reservation.EndDate"></span>
+                    </div>
+                </div>
+
+                <!-- Site Type Selection -->
+                <div class="form-group row mb-3">
+                    <div class="col-sm-4">
+                        <h5><label>Site Types</label></h5>
+                    </div>
+                    <div class="col-sm-8">
+                        <div id="siteTypeCheckboxes">
+                            <div class="mb-2 d-flex gap-2">
+                                <button type="button" id="selectAllSiteTypes"
+                                        class="btn btn-outline-primary btn-sm px-2 py-1">
+                                    Select All
+                                </button>
+
+                                <button type="button" id="deselectAllSiteTypes"
+                                        class="btn btn-outline-secondary btn-sm px-2 py-1">
+                                    Deselect All
+                                </button>
+                            </div>
+                            @foreach (var siteType in Model.SiteTypes)
+                            {
+                                if (siteType.SiteTypeId != 5) // Exclude Short Term Storage
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input site-type-checkbox" type="checkbox" value="@siteType.SiteTypeId" id="siteType_@siteType.SiteTypeId" checked>
+                                        <label class="form-check-label" for="siteType_@siteType.SiteTypeId">
+                                            @siteType.Name: <span class="text-success font-weight-bold" id="siteTypePrice_@siteType.SiteTypeId"></span>
+                                        </label>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+                <!-- Handicapped Filter -->
+                <div class="form-group row mb-3">
+                    <div class="col-sm-4">
+                        <h5><label>Show Handicapped Sites</label></h5>
+                    </div>
+                    <div class="col-sm-8">
+                        <input type="checkbox" id="showHandicapped" />
+                        <label for="showHandicapped">Include Handicapped-Accessible Sites</label>
+                    </div>
+                </div>
+
+
+                <!-- Trailer Length - Only visible if RV site types are selected -->
+                <div class="form-group row mb-3" id="trailerLengthSection">
+                    <div class="col-sm-4">
+                        <h5><label asp-for="Reservation.TrailerLength">Trailer Length (ft)</label></h5>
+                    </div>
+                    <div class="col-sm-8">
+                        <input class="form-control" asp-for="Reservation.TrailerLength" id="trailerLength" />
+                        <span class="text-danger" asp-validation-for="Reservation.TrailerLength"></span>
+                    </div>
+                </div>
+
+                <!-- Update Find Available Sites Button to trigger modal -->
+                <div class="form-group row mb-3">
+                    <div class="col-sm-8 offset-4">
+                        <button type="button" class="btn btn-primary" id="findAvailableSites" data-bs-toggle="modal" data-bs-target="#siteMapModal">
+                            Find Available Sites
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Site Selection - Initially disabled -->
+                <div class="form-group row mb-3">
+                    <div class="col-sm-4">
+                        <h5><label>Campsite</label></h5>
+                    </div>
+                    <div class="col-sm-8">
+                        <select asp-for="Reservation.SiteId" class="form-control" id="chosenSiteId" disabled>
+                            <option value="">- Select a site -</option>
+                        </select>
+                        <span class="text-danger" asp-validation-for="Reservation.SiteId"></span>
+                    </div>
+                </div>
+                <!-- Handicapped Site Message -->
+                <div class="form-group row mb-3" id="handicappedMessage" style="display: none;">
+                    <div class="col-8 offset-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Reserved for our Wounded Warriors: You have selected a handicapped-accessible site. Please ensure you require this accommodation, as these sites are reserved for those with accessibility needs.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PCS orders Message -->
+                <div class="form-group row mb-3" id="PCSMessage" style="display: none;">
+                    <div class="col-sm-8 offset-sm-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Your reservation is over 180 days. To be able to stay this long, you will need to provide proof of PCS orders so that we can accomodate you.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Number of Vehicles -->
+                <div class="form-group row mb-3" id="vehicleSection">
+                    <div class="col-sm-4">
+                        <h5>
+                            <label for="NumberOfVehicles">Number of Vehicles</label>
+                        </h5>
+                        <p class="text-info small">Only vehicles with license plates need to be counted.</p>
+                    </div>
+
+                    <div class="col-sm-8">
+
+                        <!-- No C#, Razor will auto-select based on asp-for -->
+                        <select asp-for="NumberOfVehicles" class="form-select" id="NumberOfVehicles" name="NumberOfVehicles">
+                            <option value="1">1 Vehicle</option>
+                            <option value="2">2 Vehicles</option>
+                            <option value="3">3 Vehicles</option>
+                        </select>
+
+                        <div id="vehiclePlateFields">
+
+                            <div class="mb-3" id="vehiclePlate1Wrapper">
+                                <label class="form-label fw-bold">Vehicle #1 License Plate</label>
+                                <input asp-for="VehiclePlate1"
+                                       class="form-control"
+                                       maxlength="10" />
+                            </div>
+
+                            <div class="mb-3" id="vehiclePlate2Wrapper">
+                                <label class="form-label fw-bold">Vehicle #2 License Plate</label>
+                                <input asp-for="VehiclePlate2"
+                                       class="form-control"
+                                       maxlength="10" />
+                            </div>
+
+                            <div class="mb-3" id="vehiclePlate3Wrapper">
+                                <label class="form-label fw-bold">Vehicle #3 License Plate</label>
+                                <input asp-for="VehiclePlate3"
+                                       class="form-control"
+                                       maxlength="10" />
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="form-group row mb-3">
+                    <div class="col-sm-8 offset-sm-4">
+                        <div class="row">
+                            <input id="resStatus" type="hidden" asp-for="Reservation.ReservationStatus" />
+                            <div class="col-12 col-lg-6 mb-2 mb-lg-0">
+                                <button type="submit" class="btn btn-success form-control" id="createButton">
+                                    Continue to Summary
+                                </button>
+                            </div>
+                            <div class="col-12 col-sm-6">
+                                <a asp-page="./Index" class="btn btn-secondary form-control">Back to List</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- SVG Map Modal -->
+    <div class="modal fade" id="siteMapModal" tabindex="-1" aria-labelledby="siteMapModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="siteMapModalLabel"><i class="fas fa-map-marked-alt"></i> Select a Campsite</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="background-color: lightgrey">
+                    <div class="map-container">
+                        <!-- Colorblind Mode Toggle - Top Right -->
+                        <div class="colorblind-toggle-top">
+                            <label for="colorblind-mode-toggle">Colorblind Mode</label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="colorblind-mode-toggle" />
+                                <span class="toggle-slider"></span>
+                            </div>
+                            <p style="font-size: .75em">(use scroll wheel to zoom)</p>
+                        </div>
+
+                        <!-- Map Controls -->
+                        <div class="map-controls d-flex justify-content-between align-items-center mb-2">
+                            <h4 class="mb-0">RV Park Layout</h4>
+
+                            <!-- Legend only -->
+                            <div class="legend">
+                                <div class="legend-item">
+                                    <div class="legend-color legend-available" style="background-color: var(--accent-color);"></div>
+                                    <span>Available</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color legend-unavailable" style="background-color: var(--secondary-color)"></div>
+                                    <span>Unavailable</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color legend-selected" style="background-color: var(--gold-accent);"></div>
+                                    <span>Selected</span>
+                                </div>
+                            </div>
+
+                            <button id="zoom-out-btn" class="btn btn-primary btn-sm" disabled title="Reset map to full view">
+                                <i class="fas fa-search-minus"></i> Reset Zoom
+                            </button>
+                        </div>
+
+                        <!-- SVG Map -->
+                        <div id="svg-map" class="svg-map">
+                            Loading map...
+                        </div>
+                        <div class="site-tooltip" id="site-tooltip"></div>
+                    </div>
+                    <!-- Mini Map -->
+                    <div id="mini-map-container">
+                        <svg id="mini-map" width="100%" height="100%"></svg>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="document.getElementById('continueButton').click()">Confirm Selection</button>
+                    <button type="button" id="continueButton" hidden></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Need Help? Modal -->
+<div class="modal fade" id="builderHelpModal" tabindex="-1" aria-labelledby="builderHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="builderHelpModalLabel">How to Create a Reservation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ol class="mb-3">
+                    <li class="mb-2">
+                        Select the Guest to make a reservation for. Additionally, a new account can be created if they are a walk-in that has not made an account.
+                    </li>
+                    <li class="mb-2">
+                        Select <strong>check-in</strong> and <strong>check-out</strong> dates.
+                    </li>
+                    <li class="mb-2">
+                        Select site types to search for, select handicapped accessiblity (if applicable).
+                    </li>
+                    <li class="mb-2">
+                        Enter the trailer length (if applicable).
+                    </li>
+                    <li class="mb-2">
+                        Select 'Find Available Sites' to view the site map.
+                    </li>
+                    <li>
+                        Select a site and continue to complete the reservation.
+                    </li>
+                </ol>
+
+                <p class="mb-1"><strong>Note:</strong></p>
+                <ul>
+                    <li>Wagon Wheel Pull-through sites are available by phone reservation only.</li>
+                    <li>A <b>Standard Site</b> can accomodate up to two license plates.</li>
+                    <li>A <b>Premium Site</b> can accomodate up to three license plates.</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" data-bs-dismiss="modal">Got it</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Only load Bootstrap Select CSS and JS if not already loaded -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/css/bootstrap-select.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/siteMap.js"></script>
+
+    <!-- Military Branch/Rank Script -->
+    <script>
+        $(document).ready(function() {
+            console.log("Page loaded, initializing dropdowns...");
+
+            // Initialize the ranks dropdown as disabled because no branch is selected initially
+            $("#ddlRanks").prop('disabled', true);
+
+            // Function to properly clear and populate the ranks dropdown
+            function updateRanksDropdown(ranks, disabled = false, message = "- Please select a Military Rank -") {
+                var rankDropdown = $("#ddlRanks");
+
+                // Check if Bootstrap Select is initialized
+                var isSelectPicker = rankDropdown.hasClass('selectpicker') && rankDropdown.data('selectpicker');
+
+                if (isSelectPicker) {
+                    // For Bootstrap Select
+                    rankDropdown.selectpicker('destroy');
+                }
+
+                // Clear and populate
+                rankDropdown.empty();
+                rankDropdown.append('<option value="">' + message + '</option>');
+
+                if (ranks && ranks.length > 0) {
+                    $.each(ranks, function(i, rank) {
+                        rankDropdown.append('<option value="' + rank.id + '">' + rank.rank + '</option>');
+                    });
+                }
+
+                rankDropdown.prop('disabled', disabled);
+
+                // Reinitialize Bootstrap Select if it was originally one
+                if (rankDropdown.hasClass('selectpicker')) {
+                    rankDropdown.selectpicker({
+                        liveSearch: true,
+                        width: '100%'
+                    });
+                }
+            }
+
+            // Handle branch selection change
+            $("#ddlBranches").change(function() {
+                var branchId = $(this).val();
+                console.log("Branch selected:", branchId);
+
+                if (!branchId || branchId === "") {
+                    console.log("No branch selected, clearing ranks");
+                    updateRanksDropdown(null, true, "- Please select a Military Branch first -");
+                    return;
+                }
+
+                console.log("Loading ranks for branch:", branchId);
+                updateRanksDropdown(null, true, "Loading ranks...");
+
+                // Make AJAX call
+                $.ajax({
+                    url: "/api/Military/GetRanksByBranch",
+                    type: "GET",
+                    data: { branchId: branchId },
+                    dataType: "json",
+                    success: function(data) {
+                        console.log("Ranks received:", data);
+                        console.log("Number of ranks:", data ? data.length : 0);
+
+                        if (data && data.length > 0) {
+                            updateRanksDropdown(data, false);
+                            console.log("Ranks dropdown updated with", data.length, "ranks");
+                        } else {
+                            updateRanksDropdown(null, true, "No ranks found for this branch");
+                            console.log("No ranks found for this branch");
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("AJAX Error:", status, error);
+                        console.error("Response:", xhr.responseText);
+                        updateRanksDropdown(null, true, "Error loading ranks");
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error Loading Ranks',
+                            text: 'Failed to load military ranks. Please try again.',
+                        });
+                    }
+                });
+            });
+
+            // Initialize SelectPicker for all military dropdowns
+            $("#ddlBranches, #ddlStatuses").selectpicker({
+                liveSearch: true,
+                width: '100%'
+            });
+
+            // Initialize ranks dropdown with SelectPicker
+            $("#ddlRanks").selectpicker({
+                liveSearch: true,
+                width: '100%'
+            });
+
+            // Handle pre-selected branch
+                var selectedBranchId = $("#ddlBranches").val();
+                if (selectedBranchId && selectedBranchId !== "") {
+                console.log("Found pre-selected branch:", selectedBranchId);
+                $("#ddlBranches").trigger('change');
+            }
+        });
+    </script>
+
+    <script>
+        $(document).ready(function() {
+            const rvSiteTypeIds = [1, 2, 3, 6, 7];
+            let tmpPass = null;
+            let radio = document.getElementById("tempPassYes");
+            radio.checked = false;
+
+            radio = document.getElementById("tempPassNo");
+            radio.checked = false;
+
+            function checkWalkIn()
+            {
+
+                console.log("click");
+                console.log($("#tempPassYes").val())
+                if ($("#userDropdown").val() == "New Customer") {
+
+
+
+                    $("#newCustomerForm").show();
+
+                    $("#isWalkin").val(true);
+
+                    console.log($("#tempPassNo").is(':checked'))
+
+
+
+                } else {
+                    $("#newCustomerForm").hide();
+                    $("#isWalkin").val(false);
+
+                    console.log($("#tempPassNo").is(':checked'))
+
+
+                }
+            }
+
+            $("#userDropdown").change(checkWalkIn);
+            //const userDropdown = document.getElementById('userDropdown')
+
+            //userDropdown.addEventListener('change', checkWalkIn);
+
+            function Str_Random(length) {
+                let result = '';
+                const lower = 'abcdefghijklmnopqrstuvwxyz';
+                const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                const numbers = '0123456789';
+                const special = '!$*';
+
+                const allCharacters = [lower, upper, numbers, special];
+                // Loop to generate characters for the specified length
+                for (let i = 0; i < length; i++) {
+
+                    const charSetIndex = i % allCharacters.length;
+                    console.log(allCharacters)
+                    const randomInd = Math.floor(Math.random() * allCharacters[charSetIndex].length);
+                    result += allCharacters[charSetIndex].charAt(randomInd);
+                }
+                return result;
+            }
+
+            function ShowTempPassword()
+            {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'New Temporary Password',
+                    text: tmpPass
+                    })
+            }
+
+            $("#showTempPassBtn").click(ShowTempPassword)
+
+            function GenerateNewPassword()
+            {
+                tmpPass = Str_Random(8);
+                Swal.fire({
+                    icon: 'info',
+                    title: 'New Temporary Password',
+                    text: tmpPass
+                    })
+
+                $("#tmpPass").val(tmpPass)
+
+            }
+
+            $("#genNewPassBtn").click(GenerateNewPassword)
+
+            function tempPassword()
+            {
+                var sendTempPassword = $("#tempPassYes").is(':checked')
+
+                if (sendTempPassword == false)
+                {
+                    $("#setPassword").show();
+                    $("#generatePassword").hide();
+                    $("#tmpPass").val(null);
+
+                }
+                else
+                {
+
+                    $("#setPassword").hide();
+                    $("#generatePassword").show();
+
+                    if (tmpPass == null)
+                    {
+                        tmpPass = Str_Random(8);
+                    }
+                    Swal.fire({
+                            icon: 'info',
+                            title: 'Temp Password',
+                            text: tmpPass
+                    })
+
+                    $("#tmpPass").val(tmpPass)
+                }
+            }
+
+            $("#tempPassYes").change(tempPassword);
+            $("#tempPassNo").change(tempPassword);
+            
+
+
+            function ValidateNewUser()
+            {
+                if ($("#userDropdown").val() == "New Customer")
+                {
+                    $("#isWalkin").val(true);
+                    var valid = true;
+                    // validate form
+                    if($("#FirstName").val().trim() == "")
+                    {
+                        $("#FirstNameValidation").show()
+
+                        valid = false;
+                    }
+                    else
+                    {
+                        $("#FirstNameValidation").hide()
+
+                    }
+
+                    if($("#LastName").val().trim() == "")
+                    {
+                        $("#LastNameValidation").show()
+
+                        valid = false;
+                    }
+                    else
+                    {
+                        $("#LastNameValidation").hide()
+
+                    }
+
+                    if ($("#Email").val().trim() == "") {
+                        $("#EmailValidation").show();
+                        valid = false;
+                    }
+                    else
+                    {
+                        $("#EmailValidation").hide()
+
+                    }
+
+                    if ($("#PhoneNumber").val().trim() == "") {
+                        $("#PhoneNumberValidation").show();
+                        valid = false;
+                    }
+                    else
+                    {
+                        $("#PhoneNumberValidation").hide()
+
+                    }
+
+                    // if (document.getElementById("ddlBranches").selectedIndex == 0) {
+                    //     $("#BranchValidation").show();
+                    //     valid = false;
+                    // }
+                    // else
+                    // {
+                    //     $("#BranchValidation").hide()
+
+                    // }
+
+                    // if (document.getElementById("ddlRanks").selectedIndex == 0) {
+                    //     $("#RankValidation").show();
+                    //     valid = false;
+                    // }
+                    // else
+                    // {
+                    //     $("#RankValidation").hide()
+
+                    }
+
+                    if (document.getElementById("ddlStatuses").selectedIndex == 0) {
+                        $("#StatusValidation").show();
+                        valid = false;
+                    }
+                    else
+                    {
+                        $("#StatusValidation").hide()
+
+                    }
+
+                    var sendTempPassYes = $("#tempPassYes").is(':checked')
+                    var sendTempPassNo = $("#tempPassNo").is(':checked')
+
+
+                    if(sendTempPassYes == false && sendTempPassNo == false)
+                    {
+                        $("#SendTempPasswordValidation").show()
+                        valid = false;
+                    }
+                    else
+                    {
+                        $("#SendTempPasswordValidation").hide()
+
+                        if (sendTempPassYes == false)
+                        {
+                            if ($("#Password").val() == "") {
+                                $("#PasswordValidation").show();
+                                valid = false;
+                            }
+                            if ($("#ConfirmPassword").val() == "") {
+                                $("#ConfirmPasswordValidation").show();
+                                valid = false;
+                            }
+                            if ($("#Password").val() !== $("#ConfirmPassword").val()) {
+                                $("#MatchingPasswordValidation").show();
+                                valid = false;
+                            }
+                        }
+
+                    }
+
+                    if (!valid)
+                    {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Missing Customer Information',
+                            text: 'Please fill in all required customer fields.',
+                        });
+                    }
+
+
+                    return valid;
+                }
+            // Set up global data
+
+            }
+
+            $('#createButton').click(function(e) {
+                if ($("#userDropdown").val() == "New Customer") {
+                    $("#isWalkin").val(true);
+                    const valid = ValidateNewUser();
+                    if (!valid) {
+                        e.preventDefault();
+                        return false;
+                    }
+                } else {
+                    $("#isWalkin").val(false);
+                }
+               const selectedSiteTypes = $('.site-type-checkbox:checked').map(function() {
+                    return parseInt($(this).val());
+                }).get();
+                const trailerLength = $('#trailerLength').val();
+                const hasRvChecked = selectedSiteTypes.some(id => rvSiteTypeIds.includes(id));
+                const siteId = $('#chosenSiteId').val();
+                let selectedSite = siteId ? (window.siteData && (window.siteData[siteId] || Object.values(window.siteData).find(s => s.siteId && s.siteId.toString() === siteId.toString()))) : null;
+
+                if (!selectedSite && siteId) {
+                    $.ajax({
+                        url: `/api/Reservation/GetAvailableSites?startDate=${$('#startDate').val()}&endDate=${$('#endDate').val()}&siteTypeIds=${selectedSiteTypes.join(',')}&trailerLength=${trailerLength}`,
+                        async: false,
+                        method: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            window.siteData = {};
+                            data.sites.forEach(site => {
+                                window.siteData[site.siteId] = site;
+                            });
+                            selectedSite = Object.values(window.siteData).find(s => s.siteId.toString() === siteId.toString());
+                        }
+                    });
+                }
+
+                const isTentSiteSelected = selectedSite && (selectedSite.siteTypeId === 4 || selectedSite.siteType === 'Tent/Overflow');
+
+                if (!siteId) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'No Site Selected',
+                        text: 'Please select a campsite.',
+                    });
+                    return false;
+                }
+
+                if (!selectedSite) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Site Data Error',
+                        text: 'Selected site data not found. Please try again.',
+                    });
+                    return false;
+                }
+
+
+            });
+
+            checkWalkIn(); // Initialize on page load
+        });
+    </script>
+    <!-- Main Form Script -->
+    <script>
+        $(document).ready(function() {
+            const rvSiteTypeIds = [1, 2, 3, 6, 7]; // Premium Pull-Through, Premium Back-In, Standard, Wagon Wheel, Partial Hookup
+            const tentSiteTypeId = 4; // Tent/Overflow
+            const standardSiteTypeId = 3; // Standard (45ft limit)
+            let isProgrammaticChange = false;
+            let tmpPass = null;
+
+            // For updating the prices listed by the SiteType checkboxes
+            const siteTypes = @Html.Raw(Json.Serialize(Model.SiteTypes));
+            const siteTypePrices = @Html.Raw(Json.Serialize(Model.SiteTypePrices));
+
+            // Initialize reservation status
+            $('#resStatus').val("@SD.UpcomingReservation");
+
+            // Initialize selectpicker
+            $('.selectpicker').selectpicker();
+
+            // Initialize default selections
+            function initializeDefaultSelections() {
+                // Uncheck everything
+                $('.site-type-checkbox').prop('checked', false);
+
+                // Match customer behavior → Standard (3) is default checked
+                $('#siteType_3').prop('checked', true);
+
+                // Explicitly ensure Storage (5) stays unchecked
+                $('#siteType_5').prop('checked', false);
+
+                // Explicitly ensure Tent (4) stays unchecked
+                $('#siteType_4').prop('checked', false);
+
+                // Explicitly ensure Wagon Wheel (6) stays unchecked
+                $('#siteType_6').prop('checked', false);
+
+                initializeTrailerLengthVisibility();
+                updateValidationMessages();
+                updateSiteTypePrices();
+            }
+
+
+            // Initialize trailer length visibility
+            function initializeTrailerLengthVisibility() {
+                const hasRvChecked = $('.site-type-checkbox:checked').toArray()
+                    .some(cb => rvSiteTypeIds.includes(parseInt($(cb).val())));
+                const showHandicapped = $('#showHandicapped').is(':checked');
+
+                // Show trailer length section if RV types are selected or handicapped filter is checked
+                const shouldShowTrailerLength = hasRvChecked || showHandicapped;
+                $('#trailerLengthSection').toggle(shouldShowTrailerLength);
+
+                // Only clear trailer length if no RV types and handicapped filter is off
+                if (!hasRvChecked && !showHandicapped) {
+                    $('#trailerLength').val('');
+                    console.log('Cleared trailer length because no RV types selected and handicapped filter off');
+                }
+
+                updateFindButtonState();
+                updateValidationMessages();
+            }
+
+            // Update find button state
+            function updateFindButtonState() {
+                const hasAnyChecked = $('.site-type-checkbox:checked').length > 0;
+                $('#findAvailableSites').prop('disabled', !hasAnyChecked);
+            }
+
+            // Update validation messages
+            function updateValidationMessages() {
+                $('.validation-message').remove();
+
+                const hasRvChecked = $('.site-type-checkbox:checked').toArray()
+                    .some(cb => rvSiteTypeIds.includes(parseInt($(cb).val())));
+                const hasTentChecked = $('#siteType_' + tentSiteTypeId).is(':checked');
+                const trailerLength = parseFloat($('#trailerLength').val()) || 0;
+                const numOfVehicles = parseInt($('#NumberOfVehicles').val()) || 0;
+                const hasStandardChecked = $('#siteType_' + standardSiteTypeId).is(':checked');
+                const hasPartialHookupChecked = $('#siteType_' + 7).is(':checked');
+
+                // Show standard site restriction message
+                if (trailerLength > 45 && !hasStandardChecked) {
+                    $('#siteType_' + standardSiteTypeId).closest('.form-check').append(
+                        '<div class="validation-message text-warning ms-4"><small>Standard sites limited to 45 ft trailers</small></div>'
+                    );
+                }
+
+                // Show tent restriction message
+                if (trailerLength > 0 && !hasTentChecked) {
+                    $('#siteType_' + tentSiteTypeId).closest('.form-check').append(
+                        '<div class="validation-message text-warning ms-4"><small>Tent sites not suitable for trailers</small></div>'
+                    );
+                }
+
+                // Show non-premium vehicle restriction message (standard)
+                if (numOfVehicles > 2 && !hasStandardChecked){ // Seems like it needs to be !hasStandardChecked, not just hasStandardChecked. This seems unintuitive, but it works, because this message should only show up after the checkbox has been auto-deselected anyway. Trust.
+                    $('#siteType_' + standardSiteTypeId).closest('.form-check').append(
+                        '<div class="validation-message text-warning ms-4"><small>Standard sites limited to 2 vehicles</small></div>'
+                    );
+                }
+
+                // Show non-premium vehicle restriction message (wagon)
+                // if (numOfVehicles > 2 && !hasWagonChecked (NOT A REAL VARIABLE!! ADD IT IF THIS ENDS UP BEING NECESSARY FOR SOME REASON)){
+                //     $('#siteType_' + 6).closest('.form-check').append(
+                //         '<div class="validation-message text-warning ms-4"><small>Wagon sites limited to 2 vehicles</small></div>'
+                //     );
+                // }
+
+                // Show non-premium vehicle restriction message (partial hookup)
+                if (numOfVehicles > 2 && !hasPartialHookupChecked){
+                    $('#siteType_' + 7).closest('.form-check').append(
+                        '<div class="validation-message text-warning ms-4"><small>Partial Hookup sites limited to 2 vehicles</small></div>'
+                    );
+                }
+            }
+
+            // Enforce checkbox rules
+            function enforceCheckboxRules(clickedCheckbox = null) {
+                if (isProgrammaticChange) return;
+
+                const clickedValue = clickedCheckbox ? parseInt($(clickedCheckbox).val()) : null;
+                const clickedIsChecked = clickedCheckbox ? $(clickedCheckbox).is(':checked') : false;
+
+                const tentChecked = $('#siteType_' + tentSiteTypeId).is(':checked');
+                const rvChecked = $('.site-type-checkbox:checked').toArray()
+                    .some(cb => rvSiteTypeIds.includes(parseInt($(cb).val())));
+
+                isProgrammaticChange = true;
+
+                // If tent was just clicked and checked, uncheck all RV types, clear trailer length, and uncheck handicapped
+                if (clickedValue === tentSiteTypeId && clickedIsChecked) {
+                    rvSiteTypeIds.forEach(typeId => {
+                        $('#siteType_' + typeId).prop('checked', false);
+                    });
+                    $('#trailerLength').val('');
+                    $('#showHandicapped').prop('checked', false);
+                    console.log('Tent checked: unchecked all RV types, cleared trailer length, and unchecked handicapped');
+                }
+                // If an RV type was just clicked and checked, uncheck tent
+                else if (rvSiteTypeIds.includes(clickedValue) && clickedIsChecked) {
+                    $('#siteType_' + tentSiteTypeId).prop('checked', false);
+                    console.log('RV type checked: unchecked tent');
+                }
+
+                // If trailer length entered, uncheck tent and handicapped
+                const trailerLength = parseFloat($('#trailerLength').val()) || 0;
+                if (trailerLength > 0) {
+                    // If trailer length entered, uncheck tent
+                    if ($('#siteType_' + tentSiteTypeId).is(':checked')) {
+                        $('#siteType_' + tentSiteTypeId).prop('checked', false);
+                        $('#showHandicapped').prop('checked', false);
+                        console.log('Trailer length entered: unchecked tent and handicapped');
+                    }
+
+                    // If trailer > 45ft, uncheck standard
+                    if (trailerLength > 45 && $('#siteType_' + standardSiteTypeId).is(':checked')) {
+                        $('#siteType_' + standardSiteTypeId).prop('checked', false);
+                        console.log('Trailer length > 45ft: unchecked standard');
+                    }
+                }
+
+                // If num of vehicles exceeds 2, uncheck non-premium
+                const numOfVehicles = parseInt($('#NumberOfVehicles').val()) || 0;
+                if (numOfVehicles > 2){
+                    // NOTE: At some point, it'd be GREAT to have the number of allowed vehicles be a value in SiteType that can be modified! Hard-coding things like this is not good!!!
+
+                    // Standard
+                    if ($('#siteType_' + standardSiteTypeId).is(':checked') && clickedValue != standardSiteTypeId) {
+                        $('#siteType_' + standardSiteTypeId).prop('checked', false);
+                        console.log('More than 2 vehicles: unchecked standard');
+                    }
+                    // Wagon wheel (doesn't this not have a checkbox? Will leave this commented out)
+                    // if ($('#siteType_' + 6).is(':checked')) {
+                    //     $('#siteType_' + 6).prop('checked', false);
+                    //     console.log('More than 2 vehicles: unchecked wagon wheel');
+                    // }
+                    // Partial Hookup
+                    if ($('#siteType_' + 7).is(':checked') && clickedValue != 7) {
+                        $('#siteType_' + 7).prop('checked', false);
+                        console.log('More than 2 vehicles: unchecked partial hookup');
+                    }
+                }
+
+                isProgrammaticChange = false;
+
+                // Update
+                initializeTrailerLengthVisibility();
+            }
+
+            // Initialize default selections
+            initializeDefaultSelections();
+
+            // Walk-in customer handling
+            function checkWalkIn() {
+                console.log("Checking walk-in status");
+                if ($("#userDropdown").val() === "New Customer") {
+                    $("#newCustomerForm").show();
+                    $("#isWalkin").val(true);
+                } else {
+                    $("#newCustomerForm").hide();
+                    $("#isWalkin").val(false);
+                }
+                validateForm();
+            }
+
+            // Generate random password
+            function Str_Random(length) {
+                let result = '';
+                const lower = 'abcdefghijklmnopqrstuvwxyz';
+                const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                const numbers = '0123456789';
+                const special = '!$*';
+                const allCharacters = [lower, upper, numbers, special];
+
+                for (let i = 0; i < length; i++) {
+                    const charSetIndex = i % allCharacters.length;
+                    const randomInd = Math.floor(Math.random() * allCharacters[charSetIndex].length);
+                    result += allCharacters[charSetIndex].charAt(randomInd);
+                }
+                return result;
+            }
+
+            // Show temporary password
+            function ShowTempPassword() {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'New Temporary Password',
+                    text: tmpPass
+                });
+            }
+
+            $("#showTempPassBtn").click(ShowTempPassword);
+
+            // Generate new temporary password
+            function GenerateNewPassword() {
+                tmpPass = Str_Random(8);
+                Swal.fire({
+                    icon: 'info',
+                    title: 'New Temporary Password',
+                    text: tmpPass
+                });
+                $("#tmpPass").val(tmpPass);
+            }
+
+            $("#genNewPassBtn").click(GenerateNewPassword);
+
+            // Handle temporary password radio buttons
+            function tempPassword() {
+                const sendTempPassword = $("#tempPassYes").is(':checked');
+                if (sendTempPassword) {
+                    $("#setPassword").hide();
+                    $("#generatePassword").show();
+                    if (tmpPass == null) {
+                        tmpPass = Str_Random(8);
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Temp Password',
+                            text: tmpPass
+                        });
+                        $("#tmpPass").val(tmpPass);
+                    }
+                } else {
+                    $("#setPassword").show();
+                    $("#generatePassword").hide();
+                    $("#tmpPass").val(null);
+                }
+                validateForm();
+            }
+
+            $("#tempPassYes").change(tempPassword);
+            $("#tempPassNo").change(tempPassword);
+
+            // Validate new user
+            function ValidateNewUser() {
+                if ($("#userDropdown").val() === "New Customer") {
+                    $("#isWalkin").val(true);
+                    let valid = true;
+
+                    if ($("#FirstName").val().trim() === "") {
+                        $("#FirstNameValidation").show();
+                        valid = false;
+                    } else {
+                        $("#FirstNameValidation").hide();
+                    }
+
+                    if ($("#LastName").val().trim() === "") {
+                        $("#LastNameValidation").show();
+                        valid = false;
+                    } else {
+                        $("#LastNameValidation").hide();
+                    }
+
+                    if ($("#Email").val().trim() === "") {
+                        $("#EmailValidation").show();
+                        valid = false;
+                    } else {
+                        $("#EmailValidation").hide();
+                    }
+
+                    if ($("#PhoneNumber").val().trim() === "") {
+                        $("#PhoneNumberValidation").show();
+                        valid = false;
+                    } else {
+                        $("#PhoneNumberValidation").hide();
+                    }
+
+                    // if (document.getElementById("ddlBranches").selectedIndex === 0) {
+                    //     $("#BranchValidation").show();
+                    //     valid = false;
+                    // } else {
+                    //     $("#BranchValidation").hide();
+                    // }
+
+                    // if (document.getElementById("ddlRanks").selectedIndex === 0) {
+                    //     $("#RankValidation").show();
+                    //     valid = false;
+                    // } else {
+                    //     $("#RankValidation").hide();
+                    // }
+
+                    if (document.getElementById("ddlStatuses").selectedIndex === 0) {
+                        $("#StatusValidation").show();
+                        valid = false;
+                    } else {
+                        $("#StatusValidation").hide();
+                    }
+
+                    const sendTempPassYes = $("#tempPassYes").is(':checked');
+                    const sendTempPassNo = $("#tempPassNo").is(':checked');
+
+                    if (!sendTempPassYes && !sendTempPassNo) {
+                        $("#SendTempPasswordValidation").show();
+                        valid = false;
+                    } else {
+                        $("#SendTempPasswordValidation").hide();
+                        if (!sendTempPassYes) {
+                            if ($("#Password").val() === "") {
+                                $("#PasswordValidation").show();
+                                valid = false;
+                            } else {
+                                $("#PasswordValidation").hide();
+                            }
+                            if ($("#ConfirmPassword").val() === "") {
+                                $("#ConfirmPasswordValidation").show();
+                                valid = false;
+                            } else {
+                                $("#ConfirmPasswordValidation").hide();
+                            }
+                            if ($("#Password").val() !== $("#ConfirmPassword").val()) {
+                                $("#MatchingPasswordValidation").show();
+                                valid = false;
+                            } else {
+                                $("#MatchingPasswordValidation").hide();
+                            }
+                        }
+                    }
+
+                    if (!valid) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Missing Customer Information',
+                            text: 'Please fill in all required customer fields.',
+                        });
+                    }
+
+                    return valid;
+                }
+                return true;
+            }
+
+            // Fetch available sites
+            async function fetchAvailableSites() {
+                const startDate = $('#startDate').val();
+                const endDate = $('#endDate').val();
+                const trailerLength = $('#trailerLength').val() || '';
+                const selectedSiteTypes = $('.site-type-checkbox:checked').map(function() {
+                    return parseInt($(this).val());
+                }).get();
+                const showHandicapped = $('#showHandicapped').is(':checked') ?? true;
+
+                if (!startDate || !endDate || selectedSiteTypes.length === 0) {
+                    updatechosenSiteId([], '#chosenSiteId');
+                    return;
+                }
+
+                try {
+                    const response = await $.ajax({
+                        url: `/api/Reservation/GetAvailableSites?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&siteTypeIds=${selectedSiteTypes.join(',')}&trailerLength=${encodeURIComponent(trailerLength)}`,
+                        method: 'GET',
+                        dataType: 'json'
+                    });
+
+                    let filteredSites = (response.sites || []).filter(site => site.siteTypeId !== 5); // Exclude Short Term Storage
+                    if (!showHandicapped) {
+                        filteredSites = filteredSites.filter(site => !site.isHandicappedAccessible);
+                    }
+
+                    window.siteData = window.siteData || {};
+                    // store keyed by siteId (string) for consistent lookup
+                    filteredSites.forEach(site => {
+                        const key = site.siteId.toString();
+                        window.siteData[key] = {
+                            siteId: key,
+                            name: site.name,
+                            trailerMaxSize: site.trailerMaxSize,
+                            siteType: site.siteType,
+                            siteTypeId: site.siteTypeId,
+                            pricePerDay: site.pricePerDay,
+                            isHandicappedAccessible: !!site.isHandicappedAccessible
+                        };
+                    });
+
+                    updatechosenSiteId(filteredSites, '#chosenSiteId');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('siteMapModal'));
+                    if (modal && modal._isShown) {
+                        updateMap(filteredSites, parseFloat(trailerLength) || 0);
+                    }
+                } catch (error) {
+                    console.error('Error fetching available sites:', error);
+                    updatechosenSiteId([], '#chosenSiteId');
+                }
+            }
+
+            // Update site dropdown
+            function updatechosenSiteId(sites, dropdownSelector) {
+                const dropdown = $(dropdownSelector);
+                dropdown.empty().append('<option value="">- Select a site -</option>');
+                if (!sites || sites.length === 0) {
+                    dropdown.prop('disabled', true);
+                    $('#createButton').prop('disabled', true);
+                    return;
+                }
+
+                sites.forEach(site => {
+                    // site may be server object or normalized object; use site.siteId consistently
+                    const id = site.siteId !== undefined ? site.siteId : site.siteId;
+                    const isHand = !!site.isHandicappedAccessible;
+                    dropdown.append(`<option value="${id}">${site.name} (${site.siteType}${isHand ? ', Handicapped Accessible' : ''})</option>`);
+                });
+                dropdown.prop('disabled', false);
+                validateForm();
+
+                // show handicapped message for the currently selected site
+                const selectedId = dropdown.val();
+                if (selectedId) {
+                    updateHandicappedMessage(selectedId);
+                }
+            }
+
+            // Update handicapped message
+            function updateHandicappedMessage(siteId) {
+                const handicappedMessage = $('#handicappedMessage');
+                if (!siteId) {
+                    handicappedMessage.hide();
+                    console.log('No site selected, hiding handicapped message');
+                    return;
+                }
+                window.siteData = window.siteData || {};
+                const key = siteId.toString();
+                // prefer direct lookup by siteId key, fallback to scanning values (keeps compatibility)
+                const site = window.siteData[key] || Object.values(window.siteData).find(s => s && s.siteId && s.siteId.toString() === key);
+                console.log('updateHandicappedMessage lookup:', { key, site });
+                const isAccessible = !!(site && (site.isHandicappedAccessible || site.isHandicapAccessible));
+                if (isAccessible) {
+                    console.log(`Showing handicapped message for site: ${site.name}`);
+                    handicappedMessage.show();
+                } else {
+                    console.log(`Hiding handicapped message for siteId: ${siteId}`);
+                    handicappedMessage.hide();
+                }
+            }
+
+            // Update listed SiteType Prices based on user's selected dates
+            function updateSiteTypePrices() {
+                const startDate = $('#startDate').val();
+                const endDate = $('#endDate').val();
+
+                // If dates are missing, just use today's date for startDate and a week later for endDate
+                let userStart = new Date();
+                let userEnd = new Date(userStart.getDate() + 7);
+
+                if (startDate && endDate) {
+                    userStart = new Date(startDate);
+                    userEnd = new Date(endDate);
+                }
+
+                for (const st of siteTypes) {
+                    const el = document.getElementById(`siteTypePrice_${st.siteTypeId}`);
+                    if (!el) continue;
+
+                    // Get all prices. If there are none (which there shouldn't ever be), inform the user
+                    const prices = siteTypePrices[st.siteTypeId];
+                    if (!prices || prices.length === 0) {
+                        el.innerHTML = "<em>No pricing available</em>";
+                        continue;
+                    }
+
+                    // Find any prices whose date ranges overlap with the selected range
+                    const applicable = prices.filter(p => {
+                        const pStart = new Date(p.startDate);
+                        const pEnd = p.endDate ? new Date(p.endDate) : null;
+
+                        // Overlap test:
+                        // priceStart <= userEnd AND (priceEnd is null OR priceEnd >= userStart)
+                        return (
+                            pStart <= userEnd &&
+                            (!pEnd || pEnd >= userStart)
+                        );
+                    }).sort((a, b) => new Date(a.startDate) - new Date(b.startDate)); // Sort by startDate
+
+                    if (applicable.length === 0) {
+                        el.innerHTML = "<em>No prices for selected dates</em>";
+                        continue;
+                    }
+
+                    // Formatting
+
+                    const multiplePrices = applicable.length > 1; // To format prices correctly if there are multiple
+                    const finalPrice = applicable[applicable.length - 1]; // To make sure no comma is added if it's the last price shown
+
+                    // Iterate through every applicable Price and append formatted text to htmlParts (the "return" here is what's appending, it's not returning the func at large)
+                    const htmlParts = applicable.map(p => {
+                        const pStartTxt = new Date(p.startDate).toLocaleDateString();
+                        const pEndTxt = p.endDate
+                            ? "to " + new Date(p.endDate).toLocaleDateString()
+                            : "- ongoing";
+
+                        // Format differently depending on whether it has a set endDate or whether multiple prices are used
+                        if (p.endDate === null && multiplePrices === false)
+                        { // There's only one price, and it's indefinite
+                            return `$${p.pricePerDay.toFixed(2)}/night`;
+                        }
+                        else
+                        { // There are either more than one price, or there's an endDate that the user might want to know about, or both
+                            return `$${p.pricePerDay.toFixed(2)}/night <small>(${pStartTxt} ${pEndTxt})</small>` + (p != finalPrice ? ", " : "");
+                        }
+                    });
+
+                    el.innerHTML = htmlParts.join("");
+                }
+            }
+
+            $('#startDate, #endDate').on('change', updateSiteTypePrices);
+
+            // Date change handlers
+            $('#startDate').change(function() {
+                const startDate = $(this).val();
+                if (startDate) {
+                    // Previously, if endDate was entered first, it got overwritten once startDate was selected.
+                    // This was annoying so I changed it to only overwrite endDate if not doing so would lead to invalid results.
+                    // - Matt
+                    if ($('#endDate').val() <= startDate){
+                        const checkInDate = new Date(startDate);
+                        const checkOutDate = new Date(checkInDate);
+                        checkOutDate.setDate(checkInDate.getDate() + 1);
+                        $('#endDate').val(checkOutDate.toISOString().split('T')[0]);
+                    }
+
+                    fetchAvailableSites();
+                }
+                validateForm();
+            });
+
+            $('#endDate').change(function() {
+                fetchAvailableSites();
+                validateForm();
+            });
+
+            // Site type checkbox change handler
+            $('.site-type-checkbox').change(function() {
+                if (!isProgrammaticChange) {
+                    console.log('Checkbox changed:', $(this).val(), 'checked:', $(this).is(':checked'));
+                    enforceCheckboxRules(this);
+                    fetchAvailableSites();
+                    validateForm();
+                }
+            });
+
+            // Trailer length handlers
+            $('#trailerLength').on('input', function() {
+                $('.trailer-length-validation').remove();
+                const trailerLength = parseFloat($(this).val()) || 0;
+                console.log('Trailer length input:', trailerLength);
+
+                if (trailerLength > 0) {
+                    isProgrammaticChange = true;
+                    // If trailer length entered, uncheck tent and handicapped
+                    if ($('#siteType_' + tentSiteTypeId).is(':checked')) {
+                        $('#siteType_' + tentSiteTypeId).prop('checked', false);
+                        $('#showHandicapped').prop('checked', false);
+                        console.log('Trailer length entered: unchecked tent and handicapped');
+                    }
+                    // If trailer > 45ft, uncheck standard
+                    if (trailerLength > 45 && $('#siteType_' + standardSiteTypeId).is(':checked')) {
+                        $('#siteType_' + standardSiteTypeId).prop('checked', false);
+                        console.log('Trailer length > 45ft: unchecked standard');
+                    }
+                    isProgrammaticChange = false;
+                    initializeTrailerLengthVisibility();
+                } else {
+                    updateValidationMessages();
+                }
+
+                // Debounce
+                clearTimeout(window.trailerLengthTimeout);
+                window.trailerLengthTimeout = setTimeout(() => {
+                    fetchAvailableSites();
+                    validateForm();
+                }, 500);
+            });
+
+            $('#trailerLength').on('change', function() {
+                enforceCheckboxRules();
+                fetchAvailableSites();
+                validateForm();
+            });
+
+            $('#NumberOfVehicles').on('change', function() {
+                enforceCheckboxRules();
+                fetchAvailableSites();
+                validateForm();
+            });
+
+            // Handicapped filter change handler
+            $('#showHandicapped').change(function() {
+                if ($(this).is(':checked') && $('#siteType_' + tentSiteTypeId).is(':checked')) {
+                    isProgrammaticChange = true;
+                    $('#siteType_' + tentSiteTypeId).prop('checked', false);
+                    console.log('Handicapped checked: unchecked tent');
+                    isProgrammaticChange = false;
+                }
+                initializeTrailerLengthVisibility();
+                fetchAvailableSites();
+                validateForm();
+            });
+
+            // Site dropdown change handler
+            $('#chosenSiteId').change(function() {
+                if (isProgrammaticChange) {
+                    console.log('Programmatic change detected, resetting isProgrammaticChange');
+                    isProgrammaticChange = false;
+                    return;
+                }
+                const siteId = $(this).val();
+                console.log('chosenSiteId changed to siteId:', siteId);
+                if (siteId) {
+                    if (!window.siteMapSelectionInProgress) {
+                        setTimeout(() => {
+                            if (window.selectSiteOnMapById) {
+                                console.log('Calling selectSiteOnMapById with:', siteId);
+                                window.siteMapSelectionInProgress = true;
+                                window.selectSiteOnMapById(siteId);
+                                window.siteMapSelectionInProgress = false;
+                            } else {
+                                console.warn('selectSiteOnMapById not defined');
+                            }
+                        }, 200);
+                    }
+                } else {
+                    console.log('No site selected, hiding siteInfo');
+                    $('#handicappedMessage').hide();
+                }
+                validateForm();
+            });
+
+            // Find Available Sites button click
+                   $('#findAvailableSites').click(function() {
+            const userId = $('#userDropdown').val();
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+            const selectedSiteTypes = $('.site-type-checkbox:checked').map(function() {
+                return parseInt($(this).val());
+            }).get();
+            const hasRvChecked = selectedSiteTypes.some(id => rvSiteTypeIds.includes(id));
+            const trailerLength = hasRvChecked ? ($('#trailerLength').val() || "") : "";
+
+            if (!userId || !startDate || !endDate) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Missing Fields',
+                    text: 'Please fill in all required fields.',
+                });
+                return;
+            }
+
+            if (selectedSiteTypes.length === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'No Site Type Selected',
+                    text: 'Please select at least one site type.',
+                });
+                return;
+            }
+
+
+
+            window.isCheckAvailabilityTriggered = true;
+            fetchAvailableSites();
+        });
+
+            // Form submission validation
+            $('#createButton').click(async function(e) {
+                e.preventDefault();
+                $('.trailer-length-validation').remove();
+
+                if ($("#userDropdown").val() === "New Customer") {
+                    $("#isWalkin").val(true);
+                    const valid = ValidateNewUser();
+                    if (!valid) {
+                        return false;
+                    }
+                } else {
+                    $("#isWalkin").val(false);
+                }
+
+                const selectedSiteTypes = $('.site-type-checkbox:checked').map(function() {
+                    return parseInt($(this).val());
+                }).get();
+                const trailerLength = $('#trailerLength').val();
+                const hasRvChecked = selectedSiteTypes.some(id => rvSiteTypeIds.includes(id));
+                const hasTentOnlyChecked = selectedSiteTypes.length === 1 && selectedSiteTypes.includes(tentSiteTypeId);
+                const showHandicapped = $('#showHandicapped').is(':checked');
+                const siteId = $('#chosenSiteId').val();
+                let selectedSite = siteId ? (window.siteData && (window.siteData[siteId] || Object.values(window.siteData).find(s => s.siteId && s.siteId.toString() === siteId.toString()))) : null;
+
+                if (!siteId) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'No Site Selected',
+                        text: 'Please select a campsite.',
+                    });
+                    return false;
+                }
+
+                // Check if trailer length is required
+                const needsTrailerLength = (hasRvChecked || (selectedSiteTypes.length === 0 && showHandicapped)) && !hasTentOnlyChecked;
+                if (needsTrailerLength && !trailerLength) {
+                    $('#trailerLengthSection .form-group').append(
+                        '<div class="trailer-length-validation text-danger mt-1"><small>Please enter trailer length for RV sites</small></div>'
+                    );
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Trailer Length Required',
+                        text: 'Please enter a valid trailer length.',
+                    });
+                    return false;
+                }
+
+                if (!selectedSite) {
+                    try {
+                        console.log('Fetching site details for siteId:', siteId);
+                        const response = await $.ajax({
+                            url: `/api/Reservation/GetSiteDetails?siteId=${encodeURIComponent(siteId)}`,
+                            method: 'GET',
+                            dataType: 'json'
+                        });
+                        if (response) {
+                            selectedSite = {
+                                siteId: response.siteId.toString(),
+                                name: response.name,
+                                trailerMaxSize: response.trailerMaxSize,
+                                siteType: response.siteTypeName,
+                                siteTypeId: response.siteTypeId,
+                                pricePerDay: response.pricePerDay,
+                                isHandicappedAccessible: response.isHandicappedAccessible || false
+                            };
+                            window.siteData[response.name] = selectedSite;
+                            console.log('Fetched site details:', selectedSite);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching site details:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Site Data Error',
+                            text: 'Unable to fetch site details. Please try again.',
+                        });
+                        return false;
+                    }
+                }
+
+                if (!selectedSite) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Site Data Error',
+                        text: 'Selected site data not found. Please try again.',
+                    });
+                    return false;
+                }
+
+                const isTentSiteSelected = selectedSite && (selectedSite.siteTypeId === 4 || selectedSite.siteType === 'Tent/Overflow');
+
+                if (hasRvChecked && !trailerLength && !isTentSiteSelected) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Missing Trailer Length',
+                        text: 'Please enter a trailer length for RV sites.',
+                    });
+                    return false;
+                }
+
+                // Validate trailer length against site max
+                if (trailerLength && selectedSite.trailerMaxSize && parseFloat(trailerLength) > selectedSite.trailerMaxSize) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Trailer Length',
+                        text: `Trailer length (${trailerLength} ft) exceeds site maximum (${selectedSite.trailerMaxSize} ft).`,
+                    });
+                    return false;
+                }
+
+                // Check if the selected site is handicapped-accessible and show SweetAlert
+                if (selectedSite.isHandicappedAccessible) {
+                    const result = await Swal.fire({
+                        icon: 'info',
+                        title: 'Handicapped-Accessible Site Selected',
+                        text: 'You have selected a handicapped-accessible site. Please confirm you require this accommodation.',
+                        showCancelButton: true,
+                        confirmButtonText: 'Confirm',
+                        cancelButtonText: 'Select Another Site'
+                    });
+
+                    if (!result.isConfirmed) {
+                        console.log('User cancelled handicapped site confirmation');
+                        return false;
+                    }
+                    console.log('User confirmed handicapped site, submitting form');
+                } else {
+                    console.log('Non-handicapped site selected, submitting form');
+                }
+                //If the booking is more than 180 days, requires PCS orders to be sent in.
+                //reservation will have to be pending at this point
+                const requiresPCS = (() => {
+                    const startDate = new Date($('#startDate').val()+ 'T00:00:00');
+                    const endDate = new Date($('#endDate').val()+ 'T00:00:00');
+
+                    const diffTime = endDate.getTime() - startDate.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    console.log('PCS check', { startDate, endDate, diffDays });
+                    return diffDays > 180;
+                })();
+
+                const PCSMessage = $('#PCSMessage');
+
+
+                //Sweet alert for PCS
+                if(requiresPCS){
+                    console.log(`Showing PCS message`);
+                    PCSMessage.show();
+
+                    const result = await Swal.fire({
+                            icon: 'info',
+                            title: 'PCS Orders Required',
+                            text: 'The reservation is over 180 days. The customer will need to provide proof of PCS orders. Please confirm that they intend to stay this long and that they will provide the appropriate documentation.',
+                            showCancelButton: true,
+                            confirmButtonText: 'Confirm',
+                            cancelButtonText: 'Change Dates'
+                        });
+
+                    if (!result.isConfirmed) {
+                        console.log('User cancelled PCS confirmation');
+                        return;
+                    }
+                    console.log('User confirmed PCS orders, submitting form');
+
+                } else {
+                    console.log('PCS orders not required, submitting form');
+                    console.log(`Hiding PCS message`);
+                    PCSMessage.hide();
+                }
+                // Submit the form
+                $(this).closest('form').submit();
+            });
+
+            // Handle SVG map site selection
+            window.onSiteSelected = function(siteId) {
+                console.log('onSiteSelected called with siteId:', siteId);
+                if (siteId && $('#chosenSiteId').val() !== siteId && !isProgrammaticChange) {
+                    isProgrammaticChange = true;
+                    $('#chosenSiteId').val(siteId).trigger('change');
+                }
+            };
+
+            // Modal event handlers
+            $('#siteMapModal').on('shown.bs.modal', function() {
+                if (!window.siteMapInitialized) {
+                    console.log('Initializing SVG map');
+                    loadSvgMap();
+                    window.siteMapInitialized = true;
+                } else if (Object.keys(window.siteData).length > 0) {
+                    console.log('Updating map with existing siteData');
+                    updateMap(Object.values(window.siteData), parseFloat($('#trailerLength').val()) || 0);
+                    const siteId = $('#chosenSiteId').val();
+                    if (siteId) {
+                        updateHandicappedMessage(siteId);
+                    }
+                }
+            });
+
+            $('#siteMapModal').on('hidden.bs.modal', function() {
+                console.log('Modal hidden, resetting siteMapInitialized');
+                window.siteMapInitialized = false;
+                const selectedSiteId = $('#chosenSiteId').val();
+                if (selectedSiteId) {
+                    console.log(`Retaining selected siteId: ${selectedSiteId}`);
+                    updateHandicappedMessage(selectedSiteId);
+                } else {
+                    console.log('No site selected, hiding handicapped message');
+                    $('#handicappedMessage').hide();
+                }
+            });
+
+            // Form validation
+            function validateForm() {
+                const startDate = $('#startDate').val();
+                const endDate = $('#endDate').val();
+                const selectedSiteTypes = $('.site-type-checkbox:checked').length;
+                const trailerLength = $('#trailerLength').val();
+                const hasRvChecked = $('.site-type-checkbox:checked').toArray()
+                    .some(cb => rvSiteTypeIds.includes(parseInt($(cb).val())));
+                const hasTentChecked = $('#siteType_4').is(':checked');
+                const showHandicapped = $('#showHandicapped').is(':checked');
+                const siteId = $('#chosenSiteId').val();
+                const userId = $('#userDropdown').val();
+
+                const hasValidSiteSelection = selectedSiteTypes > 0 || showHandicapped;
+                const isValid = startDate && endDate && hasValidSiteSelection && userId;
+
+                $('#findAvailableSites').prop('disabled', !isValid);
+                $('#createButton').prop('disabled', !isValid || !siteId);
+
+                console.log('Validation:', {
+                    startDate: !!startDate,
+                    endDate: !!endDate,
+                    selectedSiteTypes,
+                    showHandicapped,
+                    hasValidSiteSelection,
+                    hasRvChecked,
+                    trailerLength: !!trailerLength,
+                    hasTentChecked,
+                    userId: !!userId,
+                    isValid
+                });
+
+                updateValidationMessages();
+            }
+
+            // Initialize site type prices and data
+            window.siteData = window.siteData || {};
+
+            // Initialize walk-in check
+            checkWalkIn();
+            $("#userDropdown").change(checkWalkIn);
+        });
+    </script>
+
+    <!-- Image Modal Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var img = document.getElementById('siteMapImage');
+            var modal = document.getElementById('imageModal');
+            var modalImg = document.getElementById('modalImg');
+            var closeBtn = document.getElementById('closeModal');
+            var zoomInBtn = document.getElementById('zoomInBtn');
+            var zoomOutBtn = document.getElementById('zoomOutBtn');
+            var zoomResetBtn = document.getElementById('zoomResetBtn');
+            var currentZoom = 1;
+            var zoomStep = 0.2;
+            var minZoom = 1;
+            var maxZoom = 4;
+
+            var isPanning = false;
+            var startX = 0, startY = 0;
+            var translateX = 0, translateY = 0;
+
+            function resetPan() {
+                translateX = 0;
+                translateY = 0;
+                modalImg.style.transform = `scale(${currentZoom}) translate(0px, 0px)`;
+            }
+
+            if (img) img.onclick = function () {
+                modal.style.display = "flex";
+                modalImg.src = this.src;
+                currentZoom = 1;
+                resetPan();
+            };
+            else console.log("Skipped img loading...")
+
+            if (closeBtn) closeBtn.onclick = function () {
+                modal.style.display = "none";
+            };
+
+            if (zoomInBtn) zoomInBtn.onclick = function () {
+                if (currentZoom < maxZoom) {
+                    currentZoom += zoomStep;
+                    modalImg.style.transform = `scale(${currentZoom}) translate(${translateX / currentZoom}px, ${translateY / currentZoom}px)`;
+                }
+            };
+            if (zoomOutBtn) zoomOutBtn.onclick = function () {
+                if (currentZoom > minZoom) {
+                    currentZoom -= zoomStep;
+                    modalImg.style.transform = `scale(${currentZoom}) translate(${translateX / currentZoom}px, ${translateY / currentZoom}px)`;
+                }
+            };
+            if (zoomResetBtn) zoomResetBtn.onclick = function () {
+                currentZoom = 1;
+                resetPan();
+            };
+
+            if (modalImg)
+            {
+                modalImg.addEventListener('wheel', function (e) {
+                    e.preventDefault();
+                    if (e.deltaY < 0 && currentZoom < maxZoom) {
+                        currentZoom += zoomStep;
+                    } else if (e.deltaY > 0 && currentZoom > minZoom) {
+                        currentZoom -= zoomStep;
+                    }
+                    modalImg.style.transform = `scale(${currentZoom}) translate(${translateX / currentZoom}px, ${translateY / currentZoom}px)`;
+                });
+
+                modalImg.addEventListener('mousedown', function (e) {
+                    if (currentZoom === 1) return;
+                    isPanning = true;
+                    modalImg.style.cursor = 'grabbing';
+                    startX = e.clientX - translateX;
+                    startY = e.clientY - translateY;
+                    e.preventDefault();
+                });
+            }
+
+            document.addEventListener('mousemove', function (e) {
+                if (!isPanning) return;
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                modalImg.style.transform = `scale(${currentZoom}) translate(${translateX / currentZoom}px, ${translateY / currentZoom}px)`;
+            });
+
+            document.addEventListener('mouseup', function () {
+                if (isPanning) {
+                    isPanning = false;
+                    modalImg.style.cursor = 'grab';
+                }
+            });
+
+            if (modal) modal.onclick = function (e) {
+                if (e.target === modal) {
+                    modal.style.display = "none";
+                }
+            };
+        });
+
+        $(document).ready(function () {
+            function updateVehiclePlateFields() {
+                const count = parseInt($('#NumberOfVehicles').val()) || 0;
+
+                $('#vehiclePlate1Wrapper').toggle(count >= 1);
+                $('#vehiclePlate2Wrapper').toggle(count >= 2);
+                $('#vehiclePlate3Wrapper').toggle(count >= 3);
+            }
+
+            function updateVehicleLimits() {
+                const selectedIds = $('.site-type-checkbox:checked')
+                    .map(function () { return parseInt($(this).val()); })
+                    .get();
+
+                if (selectedIds.includes(4)) {
+                    $('#vehicleSection').hide();
+                    $('#NumberOfVehicles').val("1");
+                    updateVehiclePlateFields();
+                    return;
+                }
+
+                $('#vehicleSection').show();
+
+                const hasPremium = selectedIds.includes(1) || selectedIds.includes(2);
+                const hasNonPremiumRv = selectedIds.includes(3) || selectedIds.includes(7);
+
+                let max = 2;
+                if (hasPremium && !hasNonPremiumRv) {
+                    max = 3;
+                }
+
+                let current = parseInt($('#NumberOfVehicles').val());
+                if (current > max || isNaN(current)) {
+                    $('#NumberOfVehicles').val(max);
+                    current = max;
+                }
+
+                // I THINK this is the code that grays out the 3 vehicle option.
+                // TODO: Considering this is commented out now, double-check whether any of this function is even necessary.
+                // $('#NumberOfVehicles option').each(function () {
+                //     const val = parseInt($(this).val());
+                //     $(this).prop('disabled', val > max);
+                // });
+
+                updateVehiclePlateFields();
+            }
+
+            $('#NumberOfVehicles').on('change', updateVehiclePlateFields);
+
+            $('.site-type-checkbox').on('change', updateVehicleLimits);
+
+            //it defaults to no generated password, so...
+            $("#setPassword").show();
+
+            updateVehicleLimits();
+            updateVehiclePlateFields();
+        });
+
+    </script>
+
+    <style>
+        #svg-map, #svg-map svg {
+            cursor: grab !important;
+        }
+
+            #svg-map .site {
+                cursor: pointer !important;
+            }
+
+            #svg-map .unavailable {
+                cursor: grab !important;
+            }
+
+            #svg-map .cls-73 {
+                cursor: grab !important;
+                pointer-events: none;
+            }
+
+            #svg-map .cls-22 {
+                cursor: grab !important;
+                pointer-events: none;
+            }
+
+            #svg-map .cls-38 {
+                cursor: grab !important;
+                pointer-events: none;
+            }
+
+            #svg-map text {
+                user-select: none;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                pointer-events: none;
+            }
+
+    </style>
+
+
+}

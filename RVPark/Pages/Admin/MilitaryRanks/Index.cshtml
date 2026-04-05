@@ -1,0 +1,131 @@
+﻿@page
+@model RVPark.Pages.Admin.MilitaryRanks.IndexModel
+@{
+}
+<div class="d-flex justify-content-between align-items-center">
+    <h1 class="text-secondary">Military Ranks</h1>
+    <a href="/Admin/MilitaryRanks/Upsert?rankId=0" class="btn btn-success"><i class="fas fa-plus"></i> Create Rank</a>
+</div>
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="my-2"><i class="fa-solid fa-jet-fighter"></i> Military Ranks</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-page-handler="Search">
+            <div class="row align-items-center gy-2">
+                <div class="col-lg-3 col-md-6">
+                    <input type="text" id="searchRankInput" class="form-control" placeholder="Search for Rank">
+                </div>
+                <div class="col-lg-3 col-md-6 d-flex justify-content-end gap-2">
+                    <button class="btn btn-primary" type="button" id="searchRankButton">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <button id="resetRankSearch" class="btn btn-danger">
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </form>
+        <table id="Military_Rank_table" class="table table-striped table-bordered" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    @* <th>Branch</th> *@
+                    <th>Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@* Hidden forms for lock/unlock actions *@
+<form id="lockForm" method="post" asp-page-handler="LockRank">
+    <input type="hidden" id="lockRankId" name="rankId" />
+</form>
+<form id="unlockForm" method="post" asp-page-handler="UnlockRank">
+    <input type="hidden" id="unlockRankId" name="rankId" />
+</form>
+
+@section Scripts
+{
+    <script src="~/js/military.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            loadList();
+        });
+
+        function loadList() {
+            dataTable = $('#Military_Rank_table').DataTable({
+                "ajax": {
+                    "url": "/api/military/GetMilitaryRanks",
+                    "type": "GET",
+                    "datatype": "json",
+                },
+                "columns": [
+                    { data: "rank", width: "35%" },
+                    //{ data: "branch", width: "35"},
+                    {
+                        data: "id", width: "30%",
+                        "render": function (data, type, row) {
+                            let lockButton = '';
+                            if (row.isActive) {
+                                lockButton = `<button type="button" onclick="lockRank(${data})" class="btn btn-warning btn-sm me-1">
+                                                <i class="fas fa-lock"></i> Lock
+                                            </button>`;
+                            } else {
+                                lockButton = `<button type="button" onclick="unlockRank(${data})" class="btn btn-danger btn-sm me-1">
+                                                <i class="fas fa-lock-open"></i> Unlock
+                                            </button>`;
+                            }
+
+                            return `<div class="text-center">
+                                            ${lockButton}
+                                        <a href="/Admin/MilitaryRanks/Upsert?rankId=${data}" class="btn btn-success btn-sm me-1">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+
+                                    </div>`;
+                        }
+                    }
+                ],
+                "searching": true,
+                "language": {
+                    "emptyTable": "no data found."
+                },
+                "order": [[1, 'asc'], [0, 'asc']],
+                "width": "100%",
+                "dom" : "lrtip"
+            });
+            //search button
+                $('#searchRankButton').on('click', function () {
+                    const value = $('#searchRankInput').val();
+                    dataTable.search(value).draw();
+                });
+                //adding for enter key
+                $('#searchRankInput').on('keypress', function (e) {
+                    if (e.which === 13) {
+                        e.preventDefault();
+                        const value = $(this).val();
+                        dataTable.search(value).draw();
+                    }
+                 });
+                // Reset button
+                $('#resetRankSearch').on('click', function (e) {
+                     e.preventDefault();
+                    $('#searchRankInput').val('');
+                    dataTable.search('').draw();
+                });
+        }
+         
+        function lockRank(rankId) {
+            document.getElementById('lockRankId').value = rankId;
+            document.getElementById('lockForm').submit();
+        }
+
+        function unlockRank(rankId) {
+            document.getElementById('unlockRankId').value = rankId;
+            document.getElementById('unlockForm').submit();
+        }
+    </script>
+}

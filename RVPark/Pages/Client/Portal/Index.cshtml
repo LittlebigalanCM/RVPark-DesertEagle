@@ -1,0 +1,382 @@
+﻿@page
+@model RVPark.Pages.Client.Portal.IndexModel
+@{
+    ViewData["Title"] = "Client Portal";
+}
+<style>
+    .client-card {
+        transition: all .3s ease;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        text-decoration: none;
+        color: inherit;
+    }
+
+        .client-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,.15);
+            text-decoration: none;
+            color: inherit;
+        }
+
+    .client-card-sites {
+        background: linear-gradient(135deg,#2c5282 0%,#3182ce 100%);
+    }
+
+    .client-card-site-type {
+        background: linear-gradient(135deg,#1a365d 0%,#2c5282 100%);
+    }
+
+    .client-card-reservations {
+        background: linear-gradient(135deg,#3182ce 0%,#4299e1 100%);
+    }
+
+    .client-card-transactions {
+        background: linear-gradient(135deg,#38a169 0%,#48bb78 100%);
+    }
+
+    .client-card .card-body, .client-card-users .card-body {
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,.1);
+    }
+
+    .client-card i {
+        opacity: .9;
+    }
+
+    .client-header {
+        background: linear-gradient(135deg,#2c5282 0%,#3182ce 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-radius: 12px;
+        text-align: center;
+    }
+
+        .client-header h1 {
+            font-weight: 700;
+            margin-bottom: .5rem;
+        }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1050;
+        inset: 0;
+        padding-top: 60px;
+        background: rgba(0,0,0,.5);
+    }
+
+    .modal-content {
+        background: #fff;
+        margin: auto;
+        padding: 0;
+        border-radius: 12px;
+        width: min(1000px,90%);
+        overflow: hidden;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .modal-body {
+        position: relative;
+        height: 70vh;
+        background: #111;
+        overflow: hidden;
+    }
+
+    .close {
+        cursor: pointer;
+        font-size: 24px;
+    }
+
+    /* Pan/zoom */
+    .pz-container {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .pz-content {
+        transform-origin: 0 0;
+        cursor: grab;
+        user-select: none;
+        -webkit-user-drag: none;
+    }
+
+        .pz-content:active {
+            cursor: grabbing;
+        }
+
+    .pz-controls {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        display: flex;
+        gap: 8px;
+    }
+
+        .pz-controls .btn {
+            padding: .35rem .6rem;
+            border-radius: 8px;
+        }
+</style>
+
+<div class="container h-100">
+    <div class="client-header">
+        <h1><i class="fas fa-cogs me-3"></i>Customer Portal</h1>
+        <p class="mb-0">Manage your account and personal information</p>
+    </div>
+
+    @* Upcoming reservation carousel *@
+    @if (Model.NextReservation != null)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-calendar-day me-2"></i>Your Next Reservation</span>
+                        <a class="btn btn-outline-light btn-sm"
+                           asp-page="/Client/Reservations/Receipt"
+                           asp-route-reservationId="@Model.NextReservation.ReservationId">
+                            <i class="fas fa-info-circle"></i> Receipt
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-stretch">
+                            <div class="col-lg-7">
+                                <div id="siteCarousel" class="carousel slide" data-bs-ride="carousel">
+                                    <div class="carousel-inner" style="border-radius:12px; overflow:hidden;">
+                                        @{
+                                            var photos = Model.SitePhotos;
+                                            if (photos == null || photos.Count == 0)
+                                            {
+                                                <div class="carousel-item active">
+                                                    <img class="d-block w-100" src="/images/site-placeholder.jpg" alt="Site" />
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                var first = true;
+                                                foreach (var p in photos)
+                                                {
+                                                    <div class="carousel-item @(first ? "active" : "")">
+                                                        <img class="d-block w-100" src="@p.Name" alt="Site photo" />
+                                                    </div>
+                                                    first = false;
+                                                }
+                                            }
+                                        }
+                                    </div>
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#siteCarousel" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Previous</span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#siteCarousel" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Next</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="h-100 d-flex flex-column">
+                                    <h5 class="mb-2">
+                                        Site @Model.NextSite?.Name
+                                        <small class="text-muted">(@Model.NextSiteTypeName)</small>
+                                    </h5>
+
+                                    <ul class="list-group list-group-flush mb-3">
+                                        <li class="list-group-item px-0 d-flex justify-content-between">
+                                            <span><i class="far fa-calendar-alt me-2"></i>Check-in</span>
+                                            <span>@Model.NextReservation.StartDate.ToShortDateString()</span>
+                                        </li>
+                                        <li class="list-group-item px-0 d-flex justify-content-between">
+                                            <span><i class="far fa-calendar me-2"></i>Check-out</span>
+                                            <span>@Model.NextReservation.EndDate.ToShortDateString()</span>
+                                        </li>
+                                        <li class="list-group-item px-0 d-flex justify-content-between">
+                                            <span><i class="fas fa-moon me-2"></i>Nights</span>
+                                            <span>@Model.Nights</span>
+                                        </li>
+                                        <li class="list-group-item px-0 d-flex justify-content-between">
+                                            <span><i class="fas fa-ticket-alt me-2"></i>Reservation #</span>
+                                            <span>@Model.NextReservation.ReservationId</span>
+                                        </li>
+                                        <li class="list-group-item px-0 d-flex justify-content-between">
+                                            <span><i class="fas fa-info-circle me-2"></i>Status</span>
+                                            <span>@Model.NextReservation.ReservationStatus</span>
+                                        </li>
+                                        <li class="list-group-item px-0 d-flex justify-content-between">
+                                            <span><i class="fas fa-dollar-sign me-2"></i>Total</span>
+                                            <span>$@Model.TotalAmount.ToString("0.00")</span>
+                                        </li>
+                                        <li class="list-group-item px-0 d-flex justify-content-between">
+                                            <span><i class="fas fa-check-circle me-2"></i>Paid</span>
+                                            <span>$@Model.TotalPaid.ToString("0.00")</span>
+                                        </li>
+                                        @if (Model.BalanceDue > 0)
+                                        {
+                                            <li class="list-group-item px-0 d-flex justify-content-between text-danger">
+                                                <span><i class="fas fa-exclamation-circle me-2"></i>Balance Due</span>
+                                                <span>$@Model.BalanceDue.ToString("0.00")</span>
+                                            </li>
+                                        }
+                                    </ul>
+
+                                    <div class="mt-auto">
+                                        <div class="d-flex gap-2">
+                                            <a class="btn btn-primary flex-fill"
+                                               asp-page="/Client/Reservations/Edit"
+                                               asp-route-id="@Model.NextReservation.ReservationId">
+                                                Manage/Edit Reservation
+                                            </a>
+
+                                            @if (Model.BalanceDue > 0)
+                                            {
+                                                <a class="btn btn-success flex-fill"
+                                                   asp-page="/Client/Reservations/Payments"
+                                                   asp-route-reservationId="@Model.NextReservation.ReservationId"
+                                                   asp-route-amountDue="@Model.BalanceDue.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)">
+                                                    <i class="fas fa-lock me-1"></i> Pay $@Model.BalanceDue.ToString("0.00")
+                                                </a>
+                                            }
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-4 col-lg-3 mb-3">
+            <a class="card h-100 client-card client-card-sites" asp-area="Identity" asp-page="/Account/Manage/Index">
+                <div class="card-body text-center">
+                    <i class="fas fa-gear fa-3x mb-3"></i>
+                    <h5 class="card-title mb-0">Update Profile</h5>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 col-lg-3 mb-3">
+            <!-- Trigger for Map Modal -->
+            <a id="mapModal" class="card h-100 client-card client-card-site-type" href="javascript:void(0);">
+                <div class="card-body text-center">
+                    <i class="fas fa-map fa-3x mb-3"></i>
+                    <h5 class="card-title mb-0">Site Map</h5>
+                </div>
+            </a>
+
+            <!-- Modal -->
+            <div id="myModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="mapTitle">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 id="mapTitle" class="modal-title mb-0">Site Map</h5>
+                        <span class="close" title="Close">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="pz-container" id="pzContainer">
+                            <img id="siteMap" class="pz-content" src="/images/sitemap.png" alt="Map" />
+                            <div class="pz-controls">
+                                <button id="zoomOut" class="btn btn-light"><i class="fas fa-search-minus"></i></button>
+                                <button id="zoomIn" class="btn btn-light"><i class="fas fa-search-plus"></i></button>
+                                <button id="zoomReset" class="btn btn-light"><i class="fas fa-compress-arrows-alt"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-lg-3 mb-3">
+            <a class="card h-100 client-card client-card-reservations" asp-area="" asp-page="/Client/Reservations/Index">
+                <div class="card-body text-center">
+                    <i class="fas fa-calendar-check fa-3x mb-3"></i>
+                    <h5 class="card-title mb-0">My Reservations</h5>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 col-lg-3 mb-3">
+            <a class="card h-100 client-card client-card-transactions" asp-area="" asp-page="/Client/Reservations/Browse">
+                <div class="card-body text-center">
+                    <i class="fas fa-calendar-plus fa-3x mb-3"></i>
+                    <h5 class="card-title mb-0">Make a Reservation</h5>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Modal open/close
+    const modal = document.getElementById("myModal");
+    const btn = document.getElementById("mapModal");
+    const closeEl = document.querySelector("#myModal .close");
+    btn.onclick = () => modal.style.display = "block";
+    closeEl.onclick = () => modal.style.display = "none";
+    window.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
+
+    // Simple pan/zoom
+    (function() {
+        const container = document.getElementById('pzContainer');
+        const content = document.getElementById('siteMap');
+        const zoomIn = document.getElementById('zoomIn');
+        const zoomOut = document.getElementById('zoomOut');
+        const zoomReset = document.getElementById('zoomReset');
+
+        let scale = 1, minScale = 0.5, maxScale = 4;
+        let originX = 0, originY = 0;
+        let isPanning = false, startX = 0, startY = 0;
+
+        function applyTransform() {
+            content.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
+        }
+
+        zoomIn.addEventListener('click', () => { scale = Math.min(maxScale, scale * 1.2); applyTransform(); });
+        zoomOut.addEventListener('click', () => { scale = Math.max(minScale, scale / 1.2); applyTransform(); });
+        zoomReset.addEventListener('click', () => { scale = 1; originX = 0; originY = 0; applyTransform(); });
+
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY < 0 ? 1.1 : 0.9;
+            const rect = content.getBoundingClientRect();
+            const cx = e.clientX - rect.left;
+            const cy = e.clientY - rect.top;
+
+            const prevScale = scale;
+            scale = Math.min(maxScale, Math.max(minScale, scale * delta));
+            const factor = scale / prevScale;
+
+            originX = cx - factor * (cx - originX);
+            originY = cy - factor * (cy - originY);
+            applyTransform();
+        }, { passive: false });
+
+        content.addEventListener('mousedown', (e) => {
+            isPanning = true; startX = e.clientX - originX; startY = e.clientY - originY;
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+            originX = e.clientX - startX;
+            originY = e.clientY - startY;
+            applyTransform();
+        });
+        window.addEventListener('mouseup', () => isPanning = false);
+
+        content.onload = applyTransform;
+    })();
+</script>

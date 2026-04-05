@@ -1,0 +1,80 @@
+﻿@page
+@model RVPark.Pages.Client.Reservations.CompleteGuestReservationModel
+@{
+    ViewData["Title"] = "Processing Reservation";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="my-2"><i class="fas fa-cog fa-spin"></i> Processing Your Reservation</h4>
+                </div>
+                <div class="card-body text-center">
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger">
+                            <h5><i class="fas fa-exclamation-triangle"></i> Oops!</h5>
+                            <p>@TempData["ErrorMessage"]</p>
+                            <div class="mt-3">
+                                <a asp-page="./Browse" class="btn btn-primary">Start New Reservation</a>
+                                <a asp-page="./Index" class="btn btn-secondary">View My Reservations</a>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                            <h5 class="mt-3">Welcome back!</h5>
+                            <p class="text-muted">We're processing your reservation details...</p>
+                            <p class="text-muted">You'll be redirected to complete your booking in just a moment.</p>
+                        </div>
+                        
+                        <!-- Auto-refresh after a few seconds if JavaScript is disabled -->
+                        <noscript>
+                            <meta http-equiv="refresh" content="3;url=/Client/Reservations/Browse">
+                            <p class="text-muted">If you're not redirected automatically, <a asp-page="./Browse">click here</a>.</p>
+                        </noscript>
+                    }
+                </div>
+            </div>
+            
+            <!-- Helpful information while processing -->
+            @if (TempData["ErrorMessage"] == null)
+            {
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h6 class="card-title"><i class="fas fa-info-circle text-info"></i> What's happening?</h6>
+                        <ul class="list-unstyled mb-0">
+                            <li><i class="fas fa-check text-success"></i> Verifying your selections are still available</li>
+                            <li><i class="fas fa-check text-success"></i> Preparing your reservation details</li>
+                            <li><i class="fas fa-spinner fa-spin text-primary"></i> Redirecting to checkout...</li>
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Only run the auto-redirect if there's no error message
+        @if (TempData["ErrorMessage"] == null)
+        {
+            <text>
+            // Small delay to let user see the processing message, then redirect if the server redirect doesn't happen
+            setTimeout(function() {
+                // Check if we're still on this page (server redirect might have already happened)
+                if (window.location.pathname.includes('CompleteGuestReservation')) {
+                    window.location.href = '/Client/Reservations/Browse';
+                }
+            }, 5000);
+            </text>
+        }
+    </script>
+}
