@@ -58,10 +58,7 @@ Follow the steps below to access the manager.
 
 1. Right click on `RVPark`
 2. Click on `Manage User Secrets`. 
-  This will open a new file called `secrets.json`.
-  See the [reference image](https://discord.com/channels/1420070994038755572/1420070994755850242/1444252095732650046) on Discord for more information.
 3. Enter your secrets into `appsettings.json`.
-  A template for this information is [available on Discord](https://discord.com/channels/1420070994038755572/1420070994755850242/1444255283194101982).
 
 And it's as simple as that. 
 By default, Visual Studio has an order of which it applies the following files:
@@ -85,10 +82,3 @@ Bitstorm Team Members:
 - Matthew ([MetroidSlayer](https://github.com/MetroidSlayer))
 - Quintin ([quintonio1000](https://github.com/quintonio1000))
 - Yugene ([edu24ylee](https://github.com/edu24ylee))
-
-## External Links
-
-Most of these links require a sign-in and are invite ONLY.
-
--  [Stripe Dashboard](https://dashboard.stripe.com/acct_1RDM5I4D8Vyglmjd/test/dashboard)
-- [Discord Server](https://discord.com/channels/1420070994038755572/1420070994755850241)
